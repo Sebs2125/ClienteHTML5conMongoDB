@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Encuestas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light d-flex align-items-center vh-100">
+<div class="container" style="max-width: 400px;">
+    <div class="card shadow">
+        <div class="card-body">
+            <h4 class="text-center mb-4">Iniciar Sesión</h4>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label>Usuario</label>
+                    <input type="text" id="usuario" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label>Contraseña</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Entrar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const usuario = document.getElementById('usuario').value;
+        const password = document.getElementById('password').value;
+
+        //Login del server
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // PUNTO 10: Guardamos en Web Storage para acceso Offline
+                localStorage.setItem('usuarioLogueado', JSON.stringify(data));
+                window.location.href = '/index.html'; // Redirigir a la encuesta
+            } else {
+                alert('Usuario o contraseña incorrectos');
+            }
+        } catch (error) {
+            // Si no hay red, verificamos si ya había un usuario en localStorage
+            const userLocal = localStorage.getItem('usuarioLogueado');
+            if (userLocal) {
+                alert('Accediendo en modo Offline');
+                window.location.href = '/index.html';
+            } else {
+                alert('No hay conexión y no existen credenciales guardadas.');
+            }
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Encuestas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- CSS de Leaflet para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #mapa { height: 500px; width: 100%; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container mt-4">
+    <h4 class="mb-3">Ubicación de Encuestas Realizadas</h4>
+    <div class="card shadow-sm p-3">
+        <div id="mapa"></div>
+    </div>
+</div>
+
+<!-- JS de Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Inicializar el mapa centrado en Rep. Dominicana (Zona Norte aprox)
+    const map = L.map('mapa').setView([19.4517, -70.6970], 8);
+
+    // Agregar la capa base (mapa visual de OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Obtener los datos del servidor (Punto 9)
+    fetch('/api/formularios')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(encuesta => {
+                // Validar que tenga coordenadas válidas
+                if(encuesta.latitud && encuesta.longitud) {
+                    const marcador = L.marker([encuesta.latitud, encuesta.longitud]).addTo(map);
+                    // Info que sale al darle clic al marcador
+                    marcador.bindPopup(`
+                            <b>${encuesta.nombre}</b><br>
+                            Sector: ${encuesta.sector}<br>
+                            Nivel: ${encuesta.nivelEscolar}<br>
+                            Encuestador: ${encuesta.usuarioRegistro}
+                        `);
+                }
+            });
+        })
+        .catch(error => console.error("Error cargando formularios:", error));
+</script>
+</body>
+</html>

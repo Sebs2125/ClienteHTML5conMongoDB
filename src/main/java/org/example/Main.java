@@ -1,5 +1,6 @@
 package org.example;
 
+import Modelos.EncuestaServiceImpl;
 import Modelos.Usuario;
 import com.auth0.jwt.JWTVerifier;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -10,7 +11,6 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -97,7 +97,7 @@ public class Main
             Usuario credenciales = ctx.bodyAsClass(Usuario.class);
             Usuario userDb = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
 
-            if ( userDb == null && userDb.getPassword().equals(credenciales.getPassword()) )
+            if ( userDb != null && userDb.getPassword().equals(credenciales.getPassword()) )
             {
                 userDb.setPassword("");
                 ctx.json( userDb );
@@ -140,7 +140,7 @@ public class Main
         });
 
         app.before("/api/rest/formularios/*", ctx -> {
-            String header = ctx.header("Authorizacion");
+            String header = ctx.header("Authorization");
 
             if ( header == null || !header.startsWith("Bearer ") )
             {

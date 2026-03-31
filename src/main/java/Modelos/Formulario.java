@@ -4,7 +4,6 @@ import org.bson.types.ObjectId;
 
 public class Formulario
 {
-
     private ObjectId id;
     private String nombre;
     private String sector;
@@ -12,6 +11,7 @@ public class Formulario
     private String usuarioRegistro;
     private double latitud;
     private double longitud;
+    private String fotoBase64;
 
     public Formulario () {}
 
@@ -69,6 +69,14 @@ public class Formulario
 
     public void setLongitud(double longitud) {
         this.longitud = longitud;
+    }
+
+    public String getFotoBase64() {
+        return fotoBase64;
+    }
+
+    public void setFotoBase64(String fotoBase64) {
+        this.fotoBase64 = fotoBase64;
     }
 
 }

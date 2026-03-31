@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+//Configuración que genera código Java
+option java_multiple_files = true;
+option  java_package = "org.example.grpc";
+option java_outer_classname = "EncuestaProto";
+
+//Definición de 2 operaciones (Punto #16)
+service  EncuestaServicio
+{
+  rpc CrearFormulario (FormularioRequest) returns (FormularioRespuesta);
+  rpc ListarFormulariosPorUsuario (UsuarioRequest) returns (ListaFormulariosRespuesta);
+}
+
+//Estructura para crear el formulario
+message FormularioRequest
+{
+  string nombre = 1;
+  string sector = 2;
+  string nivelEscolar = 3;
+  string usuarioRegistro = 4;
+  double latitud = 5;
+  double  longitud = 6;
+  string fotoBase64 = 7;
+}
+
+message  FormularioRespuesta
+{
+  bool exito = 1;
+  string mensaje = 2;
+}
+
+//Estructura para consultar formulario
+message UsuarioRequest
+{
+  string usuario = 1;
+}
+
+message FormularioData
+{
+  string id = 1;
+  string nombre = 2;
+  string sector = 3;
+  string nivelEscolar = 4;
+  string usuarioRegistro = 5;
+  double latitud = 6;
+  double longitud = 7;
+  string fotoBase64 = 8;
+}
+
+message ListaFormulariosRespuesta
+{
+  repeated FormularioData formularios = 1;
+}

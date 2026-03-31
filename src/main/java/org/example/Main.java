@@ -1,6 +1,7 @@
 package org.example;
 
 import Modelos.Usuario;
+import com.auth0.jwt.JWTVerifier;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.ConnectionString;
@@ -9,6 +10,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -18,7 +20,14 @@ import Modelos.Formulario;
 import java.util.ArrayList;
 import java.util.List;
 
-import static javax.management.Query.eq;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+
+import static com.mongodb.client.model.Filters.eq;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -86,7 +95,7 @@ public class Main
 
         app.post("/login", ctx -> {
             Usuario credenciales = ctx.bodyAsClass(Usuario.class);
-            Usuario userDb = colUsuarios.find(eq("usuario", credenciales.getPassword() ) );
+            Usuario userDb = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
 
             if ( userDb == null && userDb.getPassword().equals(credenciales.getPassword()) )
             {
@@ -102,10 +111,92 @@ public class Main
 
         MongoCollection<Formulario> colFormularios = database.getCollection("formularios", Formulario.class);
 
-        app.get("/api/formulario", ctx -> {
+        app.get("/api/formularios", ctx -> {
             List<Formulario> lista = colFormularios.find().into(new ArrayList<Formulario>());
             ctx.json(lista);
         });
+
+        //Punto #17 -> Configuración JWT:
+        Algorithm algoritmoJWT = Algorithm.HMAC256("programadorWeb123");
+
+        app.post("/api/rest/auth", ctx -> {
+            Usuario credenciales = ctx.bodyAsClass(Usuario.class);
+            Usuario userDB = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
+
+            if ( userDB != null && userDB.getPassword().equals(credenciales.getPassword()) )
+            {
+                String token = JWT.create()
+                        .withIssuer("PUCMM")
+                        .withClaim("usuario", userDB.getUsuario() )
+                        .withClaim("rol", userDB.getRol() )
+                        .sign( algoritmoJWT );
+
+                ctx.json("{\"token\": \"" + token + "\"}");
+            }
+            else
+            {
+                ctx.status(401).result("Credenciales invalidas");
+            }
+        });
+
+        app.before("/api/rest/formularios/*", ctx -> {
+            String header = ctx.header("Authorizacion");
+
+            if ( header == null || !header.startsWith("Bearer ") )
+            {
+                throw new io.javalin.http.UnauthorizedResponse("Token JWT requerido");
+            }
+
+            try {
+                String token = header.substring(7);
+                JWTVerifier verificador = JWT.require(algoritmoJWT).withIssuer("PUCMM").build();
+                DecodedJWT jwtDecodificado = verificador.verify(token);
+
+                ctx.attribute("usuarioJWT", jwtDecodificado.getClaim("usuario").asString());
+
+            }
+            catch (Exception e)
+            {
+                throw new io.javalin.http.UnauthorizedResponse("Token JWT invalido o expirado");
+            }
+
+        });
+
+        //Punto #16:
+        app.get("/api/rest/formularios/mis-registros", ctx -> {
+           String usuarioLogueado = ctx.attribute("usuarioJWT");
+           List<Formulario> listaUsuario = colFormularios.find(eq("usuarioRegistro", usuarioLogueado)).into(new ArrayList<>());
+           ctx.json( listaUsuario );
+        });
+
+        app.post("/api/rest/formularios/crear", ctx -> {
+           try {
+               Formulario nuevoFormulario = ctx.bodyAsClass(Formulario.class);
+               String usuarioLogueado = ctx.attribute("usuarioJWT");
+               nuevoFormulario.setUsuarioRegistro(usuarioLogueado);
+               colFormularios.insertOne(nuevoFormulario);
+               ctx.status(201).result("Formulario creado exitosamente via REST");
+           } catch (Exception e) {
+               ctx.status(400).result("Error procesando el formulario: " + e.getMessage());
+           }
+        });
+
+        try {
+            Server grpcServer = ServerBuilder.forPort(50051)
+                    .addService(new EncuestaServiceImpl(colFormularios))
+                    .build()
+                    .start();
+
+            System.out.println("Servidor gRPC iniciado en el puerto 50051");
+
+            // Mantener el servidor corriendo si la app principal se detiene
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Apagando servidor gRPC...");
+                grpcServer.shutdown();
+            }));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 }

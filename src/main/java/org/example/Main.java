@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import static com.mongodb.client.model.Filters.eq;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 /**
  * Main — Punto de entrada de la aplicación
  *
@@ -43,7 +43,7 @@ public class Main
     public static void main(String[] args)
     {
         // ── 1. MongoDB Atlas ───────────────────────────────────────────────
-        String uri = "mongodb+srv://sebastianalmanzar05_db_user:vxjkvSmKHkSbBKOK@sebs2125.mdldtfy.mongodb.net/?appName=Sebs2125";
+        String uri = "mongodb+srv://eeeb0002_db_user:3Ch9p4xut9kpE2fB@prueba0.zgrgp7d.mongodb.net/?retryWrites=true&w=majority&appName=prueba0";
 
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry(),

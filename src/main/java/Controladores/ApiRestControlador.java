@@ -56,13 +56,13 @@ public class ApiRestControlador
     {
         try {
             Usuario credenciales = ctx.bodyAsClass(Usuario.class);
-            Usuario userDB = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
+            Usuario userDB = colUsuarios.find(eq("username", credenciales.getUsername())).first();
 
             if (userDB != null && userDB.getPassword().equals(credenciales.getPassword()))
             {
                 String token = JWT.create()
                         .withIssuer("PUCMM")
-                        .withClaim("usuario", userDB.getUsuario())
+                        .withClaim("username", userDB.getUsername())
                         .withClaim("rol",     userDB.getRol())
                         .sign(algoritmoJWT);
 

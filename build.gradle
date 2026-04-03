@@ -18,6 +18,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'com.auth0:java-jwt:4.4.0'
 
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
     // MongoDB
     implementation 'org.mongodb:mongodb-driver-sync:4.11.1'
 

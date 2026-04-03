@@ -60,7 +60,7 @@ public class EncuestaControlador
             // Si el JS no mandó usuarioRegistro, lo tomamos de la sesión activa
             if (f.getUsuarioRegistro() == null || f.getUsuarioRegistro().isBlank()) {
                 Usuario sesion = ctx.sessionAttribute("usuario");
-                if (sesion != null) f.setUsuarioRegistro(sesion.getUsuario());
+                if (sesion != null) f.setUsuarioRegistro(sesion.getUsername());
             }
             if (f.getFechaRegistro() == null) f.setFechaRegistro(LocalDateTime.now());
 
@@ -79,7 +79,7 @@ public class EncuestaControlador
         Usuario sesion = ctx.sessionAttribute("usuario");
 
         List<Formulario> encuestas = colFormularios
-                .find(eq("usuarioRegistro", sesion.getUsuario()))
+                .find(eq("usuarioRegistro", sesion.getUsername()))
                 .sort(descending("fechaRegistro"))
                 .into(new ArrayList<>());
 

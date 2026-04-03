@@ -41,7 +41,7 @@ public class AuthControlador
         Map<String, Object> model = new HashMap<>();
         model.put("error", ctx.queryParam("error"));
         model.put("exito", ctx.queryParam("exito"));
-        ctx.render("login ", model);
+        ctx.render("login", model);
     }
 
     // ── POST /login ────────────────────────────────────────────────────────

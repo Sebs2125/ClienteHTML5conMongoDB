@@ -25,6 +25,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import static com.mongodb.client.model.Filters.eq;
@@ -56,7 +57,7 @@ public class Main
         );
 
         MongoDatabase database = mongoClient.getDatabase("encuestas_db");
-        System.out.println("✅ Conectado a MongoDB Atlas");
+        System.out.println(" Conectado a MongoDB Atlas");
 
         MongoCollection<Usuario>    colUsuarios    = database.getCollection("usuarios",    Usuario.class);
         MongoCollection<Formulario> colFormularios = database.getCollection("formularios", Formulario.class);
@@ -81,14 +82,29 @@ public class Main
             // Usar Thymeleaf como renderizador
             config.fileRenderer((file, model, ctx) -> {
                 Context thymeleafCtx = new Context();
+
+                // Crear map con los datos del modelo
+                Map<String, Object> data = new HashMap<>();
                 if (model != null) {
-                    thymeleafCtx.setVariables((Map<String, Object>) model);
+                    data.putAll((Map<String, Object>) model);
                 }
+
+                // Agregar la sesión para que Thymeleaf pueda accederla
+                Map<String, Object> session = new HashMap<>();
+                if (ctx.sessionAttribute("usuario") != null) {
+                    session.put("usuario", ctx.sessionAttribute("usuario"));
+                }
+                if (ctx.sessionAttribute("rol") != null) {
+                    session.put("rol", ctx.sessionAttribute("rol"));
+                }
+                data.put("session", session);
+
+                thymeleafCtx.setVariables(data);
                 return templateEngine.process(file.replaceAll("\\.html$", ""), thymeleafCtx);
             });
         }).start(7000);
 
-        System.out.println("✅ Servidor Javalin en http://localhost:7000");
+        System.out.println(" Servidor Javalin en http://localhost:7000");
 
         // Ruta raíz
         app.get("/", ctx -> ctx.redirect("/login"));
@@ -110,7 +126,7 @@ public class Main
         new WebSocketControlador(colFormularios, mapper)
                 .registrarRutas(app);
 
-        System.out.println("✅ Todos los controladores registrados");
+        System.out.println(" Todos los controladores registrados");
 
         // ── 8. Servidor gRPC ───────────────────────────────────────────────
         iniciarGRPC(colFormularios);
@@ -137,7 +153,7 @@ public class Main
             colUsuarios.insertOne(new Usuario("Administrador",  "admin",        "admin@pucmm.edu.do",       "1234", "ADMINISTRADOR"));
             colUsuarios.insertOne(new Usuario("Encuestador 1",  "encuestador1", "enc1@pucmm.edu.do",        "1234", "ENCUESTADOR"));
             colUsuarios.insertOne(new Usuario("Supervisor",     "supervisor",   "supervisor@pucmm.edu.do",  "1234", "SUPERVISOR"));
-            System.out.println("✅ Usuarios de prueba creados (admin/1234, encuestador1/1234, supervisor/1234)");
+            System.out.println(" Usuarios de prueba creados (admin/1234, encuestador1/1234, supervisor/1234)");
         }
     }
 
@@ -149,15 +165,15 @@ public class Main
                     .build()
                     .start();
 
-            System.out.println("✅ Servidor gRPC en puerto 50051");
+            System.out.println(" Servidor gRPC en puerto 50051");
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("🛑 Apagando servidor gRPC...");
+                System.out.println(" Apagando servidor gRPC...");
                 grpcServer.shutdown();
             }));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al iniciar gRPC: " + e.getMessage());
+            System.err.println(" Error al iniciar gRPC: " + e.getMessage());
         }
     }
 }

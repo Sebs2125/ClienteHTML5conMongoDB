@@ -130,8 +130,7 @@
         function inicializar() {
             try { encuestasAll = JSON.parse(ENCUESTAS_DATA); } catch(e) { encuestasAll = []; }
 
-            // Mapa
-            mapa = L.map('map-container', { zoomControl: true }).setView([19.45, -70.70], 9);
+            mapa = L.map('map-container', { zoomControl: true }).setView([18.7357, -70.1627], 8);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap'
             }).addTo(mapa);
@@ -164,6 +163,7 @@
                 markers.push(marker);
                 bounds.push([lat, lng]);
             });
+            // Solo hace fitBounds si hay puntos, si no mantiene la vista de RD
             if (bounds.length > 0) mapa.fitBounds(bounds, { padding: [30, 30] });
         }
 

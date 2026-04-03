@@ -48,7 +48,7 @@ public class AdminControlador
 
         try {
             Map<String, Object> model = construirModeloDashboard();
-            ctx.render("/templates/Dashboard.html", model);
+            ctx.render("dashboard.html", model);
         } catch (Exception e) {
             ctx.status(500).result("Error al cargar el dashboard: " + e.getMessage());
         }
@@ -65,7 +65,7 @@ public class AdminControlador
 
             Map<String, Object> model = construirModeloDashboard();
             model.put("usuarios", usuarios);
-            ctx.render("/templates/Usuarios.html", model);
+            ctx.render("usuarios.html", model);
 
         } catch (Exception e) {
             ctx.status(500).result("Error al cargar usuarios: " + e.getMessage());
@@ -86,7 +86,7 @@ public class AdminControlador
 
         Map<String, Object> model = new HashMap<>();
         model.put("encuestas", todas);
-        ctx.render("/templates/Me_encuesta.html", model);
+        ctx.render("me_encuesta.html", model);
     }
 
     // ── GET /admin/exportar ────────────────────────────────────────────────
@@ -165,7 +165,7 @@ public class AdminControlador
     {
         for (Formulario f : lista) {
             if (f.getUsuarioRegistro() != null) {
-                Usuario u = colUsuarios.find(eq("usuario", f.getUsuarioRegistro())).first();
+                Usuario u = colUsuarios.find(eq("username", f.getUsuarioRegistro())).first();
                 if (u != null) { u.setPassword(""); f.setUsuario(u); }
             }
             if (f.getFechaRegistro() == null) f.setFechaRegistro(LocalDateTime.now());

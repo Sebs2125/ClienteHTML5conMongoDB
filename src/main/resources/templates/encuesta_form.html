@@ -42,7 +42,7 @@
                         <input type="hidden" id="field-lng" name="longitud">
                         <input type="hidden" id="field-foto" name="fotoBase64">
                         <input type="hidden" id="field-usuario" name="usuarioId"
-                               th:value="${session.usuario != null ? session.usuario.id : ''}">
+                               th:value="${session.usuario != null ? session.usuario.id.toString() : ''}"                        >
 
                         <div class="row g-3">
 

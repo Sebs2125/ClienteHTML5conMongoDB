@@ -1,202 +1,141 @@
 package org.example;
 
+import Controladores.*;
 import Modelos.EncuestaServiceImpl;
+import Modelos.Formulario;
 import Modelos.Usuario;
-import com.auth0.jwt.JWTVerifier;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
-import Modelos.Formulario;
 
 import java.util.ArrayList;
-import java.util.List;
-
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
-
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
+/**
+ * Main — Punto de entrada de la aplicación
+ *
+ * Responsabilidades:
+ *  1. Conectar a MongoDB Atlas
+ *  2. Configurar Jackson (JSON)
+ *  3. Crear el servidor Javalin
+ *  4. Instanciar e inyectar los controladores
+ *  5. Arrancar el servidor gRPC
+ *  6. Crear datos de prueba si la BD está vacía
+ */
 public class Main
 {
-    public static void main( String[] args )
+    public static void main(String[] args)
     {
-        //1- Configuración de MongoDB Atlas y ODM.
+        // ── 1. MongoDB Atlas ───────────────────────────────────────────────
         String uri = "mongodb+srv://sebastianalmanzar05_db_user:vxjkvSmKHkSbBKOK@sebs2125.mdldtfy.mongodb.net/?appName=Sebs2125";
 
-        CodecRegistry codigoRegistro = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), fromProviders(PojoCodecProvider.builder().automatic(true).build()));
+        CodecRegistry codecRegistry = fromRegistries(
+                MongoClientSettings.getDefaultCodecRegistry(),
+                fromProviders(PojoCodecProvider.builder().automatic(true).build())
+        );
 
-        MongoClientSettings settings = MongoClientSettings.builder()
-                .applyConnectionString(new ConnectionString(uri))
-                .codecRegistry(codigoRegistro)
-                .build();
+        MongoClient   mongoClient = MongoClients.create(
+                MongoClientSettings.builder()
+                        .applyConnectionString(new ConnectionString(uri))
+                        .codecRegistry(codecRegistry)
+                        .build()
+        );
 
-        MongoClient mongoClient = MongoClients.create(settings);
         MongoDatabase database = mongoClient.getDatabase("encuestas_db");
-        System.out.println("Conectado a MongoDB Atlas");
+        System.out.println("✅ Conectado a MongoDB Atlas");
 
-        //2- Configuracion del Server Web Javalin
-        Javalin app = Javalin.create(config -> { //Server Estático
-            config.staticFiles.add("/public", Location.CLASSPATH);
-        }).start(7000);
-
-        //Ruta de prueba
-        app.get("/api/status", ctx -> ctx.result("Servidor funcionando correctamente"));
-        app.get("/", ctx -> ctx.redirect("/index.html"));
-
-        app.ws("/sincronizar", ws -> {
-            ws.onMessage( ctx -> {
-                String jsonRecibido = ctx.message();
-                System.out.println("Datos recibidos del Worder: " + jsonRecibido );
-
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    List<Formulario> encuestas = mapper.readValue(jsonRecibido, new TypeReference<List<Formulario>>() {
-                    });
-
-                    MongoCollection<Formulario> coleccion = database.getCollection("formularios", Formulario.class);
-
-                    if ( !encuestas.isEmpty() )
-                    {
-                        coleccion.insertMany(encuestas);
-                        System.out.println("Encuestas guardadas en Atlas exitosamente.");
-                        ctx.send("OK");
-                    }
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    ctx.send("ERROR");
-                }
-
-            });
-        });
-
-        MongoCollection<Usuario> colUsuarios = database.getCollection("usuarios", Usuario.class);
-
-        if ( colUsuarios.countDocuments() == 0 )
-        {
-            colUsuarios.insertOne(new Usuario("admin", "1234", "ADMIN" ) );
-            colUsuarios.insertOne(new Usuario("encuestador1", "1234", "ENCUESTADOR" ) );
-        }
-
-        app.post("/login", ctx -> {
-            Usuario credenciales = ctx.bodyAsClass(Usuario.class);
-            Usuario userDb = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
-
-            if ( userDb != null && userDb.getPassword().equals(credenciales.getPassword()) )
-            {
-                userDb.setPassword("");
-                ctx.json( userDb );
-            }
-            else
-            {
-                ctx.status(401).result("Credenciales invalidas");
-            }
-
-        });
-
+        MongoCollection<Usuario>    colUsuarios    = database.getCollection("usuarios",    Usuario.class);
         MongoCollection<Formulario> colFormularios = database.getCollection("formularios", Formulario.class);
 
-        app.get("/api/formularios", ctx -> {
-            List<Formulario> lista = colFormularios.find().into(new ArrayList<Formulario>());
-            ctx.json(lista);
-        });
+        // ── 2. Datos de prueba (solo si la BD está vacía) ──────────────────
+        inicializarDatos(colUsuarios);
 
-        //Punto #17 -> Configuración JWT:
+        // ── 3. Jackson con soporte LocalDateTime ───────────────────────────
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // ── 4. Algoritmo JWT compartido ────────────────────────────────────
         Algorithm algoritmoJWT = Algorithm.HMAC256("programadorWeb123");
 
-        app.post("/api/rest/auth", ctx -> {
-            Usuario credenciales = ctx.bodyAsClass(Usuario.class);
-            Usuario userDB = colUsuarios.find(eq("usuario", credenciales.getUsuario())).first();
+        // ── 5. Javalin ─────────────────────────────────────────────────────
+        Javalin app = Javalin.create(config ->
+                config.staticFiles.add("/public", Location.CLASSPATH)
+        ).start(7000);
 
-            if ( userDB != null && userDB.getPassword().equals(credenciales.getPassword()) )
-            {
-                String token = JWT.create()
-                        .withIssuer("PUCMM")
-                        .withClaim("usuario", userDB.getUsuario() )
-                        .withClaim("rol", userDB.getRol() )
-                        .sign( algoritmoJWT );
+        System.out.println("✅ Servidor Javalin en http://localhost:7000");
 
-                ctx.json("{\"token\": \"" + token + "\"}");
-            }
-            else
-            {
-                ctx.status(401).result("Credenciales invalidas");
-            }
-        });
+        // Ruta raíz
+        app.get("/", ctx -> ctx.redirect("/login"));
+        app.get("/api/status", ctx -> ctx.result("OK"));
 
-        app.before("/api/rest/formularios/*", ctx -> {
-            String header = ctx.header("Authorization");
+        // ── 6. Registrar controladores ─────────────────────────────────────
+        new AuthControlador(colUsuarios)
+                .registrarRutas(app);
 
-            if ( header == null || !header.startsWith("Bearer ") )
-            {
-                throw new io.javalin.http.UnauthorizedResponse("Token JWT requerido");
-            }
+        new EncuestaControlador(colFormularios, colUsuarios, mapper)
+                .registrarRutas(app);
 
-            try {
-                String token = header.substring(7);
-                JWTVerifier verificador = JWT.require(algoritmoJWT).withIssuer("PUCMM").build();
-                DecodedJWT jwtDecodificado = verificador.verify(token);
+        new AdminControlador(colFormularios, colUsuarios, mapper)
+                .registrarRutas(app);
 
-                ctx.attribute("usuarioJWT", jwtDecodificado.getClaim("usuario").asString());
+        new ApiRestControlador(colFormularios, colUsuarios, algoritmoJWT)
+                .registrarRutas(app);
 
-            }
-            catch (Exception e)
-            {
-                throw new io.javalin.http.UnauthorizedResponse("Token JWT invalido o expirado");
-            }
+        new WebSocketControlador(colFormularios, mapper)
+                .registrarRutas(app);
 
-        });
+        System.out.println("✅ Todos los controladores registrados");
 
-        //Punto #16:
-        app.get("/api/rest/formularios/mis-registros", ctx -> {
-           String usuarioLogueado = ctx.attribute("usuarioJWT");
-           List<Formulario> listaUsuario = colFormularios.find(eq("usuarioRegistro", usuarioLogueado)).into(new ArrayList<>());
-           ctx.json( listaUsuario );
-        });
+        // ── 7. Servidor gRPC ───────────────────────────────────────────────
+        iniciarGRPC(colFormularios);
+    }
 
-        app.post("/api/rest/formularios/crear", ctx -> {
-           try {
-               Formulario nuevoFormulario = ctx.bodyAsClass(Formulario.class);
-               String usuarioLogueado = ctx.attribute("usuarioJWT");
-               nuevoFormulario.setUsuarioRegistro(usuarioLogueado);
-               colFormularios.insertOne(nuevoFormulario);
-               ctx.status(201).result("Formulario creado exitosamente via REST");
-           } catch (Exception e) {
-               ctx.status(400).result("Error procesando el formulario: " + e.getMessage());
-           }
-        });
+    // ── Helpers privados ───────────────────────────────────────────────────
 
+    private static void inicializarDatos(MongoCollection<Usuario> colUsuarios)
+    {
+        if (colUsuarios.countDocuments() == 0) {
+            colUsuarios.insertOne(new Usuario("Administrador",  "admin",        "admin@pucmm.edu.do",       "1234", "ADMINISTRADOR"));
+            colUsuarios.insertOne(new Usuario("Encuestador 1",  "encuestador1", "enc1@pucmm.edu.do",        "1234", "ENCUESTADOR"));
+            colUsuarios.insertOne(new Usuario("Supervisor",     "supervisor",   "supervisor@pucmm.edu.do",  "1234", "SUPERVISOR"));
+            System.out.println("✅ Usuarios de prueba creados (admin/1234, encuestador1/1234, supervisor/1234)");
+        }
+    }
+
+    private static void iniciarGRPC(MongoCollection<Formulario> colFormularios)
+    {
         try {
             Server grpcServer = ServerBuilder.forPort(50051)
                     .addService(new EncuestaServiceImpl(colFormularios))
                     .build()
                     .start();
 
-            System.out.println("Servidor gRPC iniciado en el puerto 50051");
+            System.out.println("✅ Servidor gRPC en puerto 50051");
 
-            // Mantener el servidor corriendo si la app principal se detiene
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("Apagando servidor gRPC...");
+                System.out.println("🛑 Apagando servidor gRPC...");
                 grpcServer.shutdown();
             }));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
+        } catch (Exception e) {
+            System.err.println("❌ Error al iniciar gRPC: " + e.getMessage());
+        }
     }
 }

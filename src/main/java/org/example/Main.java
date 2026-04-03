@@ -76,7 +76,10 @@ public class Main
 
         // ── 5. Javalin ─────────────────────────────────────────────────────
         Javalin app = Javalin.create(config ->
-                config.staticFiles.add("/public", Location.CLASSPATH)
+                config.staticFiles.add("/public", Location.CLASSPATH);
+        // Asegura que Thymeleaf busque en /templates
+        config.fileRenderer(new JavalinThymeleaf());
+
         ).start(7000);
 
         System.out.println("✅ Servidor Javalin en http://localhost:7000");

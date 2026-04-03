@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Mis Encuestas', ~{::main})}">
+<head><title>Mis Encuestas</title></head>
+<body>
+<main>
+
+    <div class="section-header mb-4">
+        <div>
+            <h2>Mis Encuestas</h2>
+            <p class="section-subtitle">Registros enviados y pendientes de sincronización</p>
+        </div>
+        <a href="/encuestas/nueva" class="btn btn-clay">
+            <i class="bi bi-plus-circle me-1"></i>Nueva Encuesta
+        </a>
+    </div>
+
+    <!-- Alertas del servidor -->
+    <div th:if="${exito}" class="alert alert-success mb-3">
+        <i class="bi bi-check-circle me-2"></i><span th:text="${exito}"></span>
+    </div>
+    <div th:if="${error}" class="alert alert-danger mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i><span th:text="${error}"></span>
+    </div>
+
+    <!-- Tabs: Servidor | Local -->
+    <ul class="nav nav-tabs-clay nav-tabs mb-4" id="tabEncuestas">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tab-servidor">
+                <i class="bi bi-cloud-check me-1"></i>En Servidor
+                <span class="badge ms-1" style="background:var(--terra-400);color:white;"
+                      th:text="${#lists.size(encuestas)}">0</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-local">
+                <i class="bi bi-hdd me-1"></i>Guardadas Localmente
+                <span class="badge ms-1 bg-secondary" id="badge-local-count">0</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- TAB SERVIDOR -->
+        <div class="tab-pane fade show active" id="tab-servidor">
+
+            <div class="card" th:if="${not #lists.isEmpty(encuestas)}">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-clay mb-0">
+                            <thead>
+                            <tr>
+                                <th>Encuestado</th>
+                                <th>Sector</th>
+                                <th>Nivel</th>
+                                <th>Ubicación</th>
+                                <th>Fecha</th>
+                                <th>Foto</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="enc : ${encuestas}">
+                                <td>
+                                    <span class="fw-bold" th:text="${enc.nombre}">—</span>
+                                </td>
+                                <td>
+                    <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;">
+                      <i class="bi bi-geo-alt" style="color:var(--terra-400);"></i>
+                      <span th:text="${enc.sector}">—</span>
+                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-clay" th:text="${enc.nivelEscolar}">—</span>
+                                </td>
+                                <td>
+                    <span th:if="${enc.latitud != null}"
+                          style="font-family:var(--font-mono);font-size:.75rem;color:var(--olive-500);">
+                      <i class="bi bi-pin-map me-1"></i>
+                      <span th:text="${enc.latitud}">0</span>,
+                      <span th:text="${enc.longitud}">0</span>
+                    </span>
+                                    <span th:unless="${enc.latitud != null}" style="color:var(--ink-muted);font-size:.8rem;">—</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted"
+                                           th:text="${#temporals.format(enc.fechaRegistro, 'dd/MM/yyyy HH:mm')}">—</small>
+                                </td>
+                                <td>
+                    <span th:if="${enc.fotoBase64 != null}"
+                          class="badge badge-olive"><i class="bi bi-check-circle me-1"></i>Sí</span>
+                                    <span th:unless="${enc.fotoBase64 != null}"
+                                          style="color:var(--ink-muted);font-size:.8rem;">—</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a th:href="@{'/encuestas/' + ${enc.id}}" class="btn btn-sm btn-sand">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a th:href="@{'/encuestas/' + ${enc.id} + '/editar'}" class="btn btn-sm btn-clay-outline">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form th:action="@{'/encuestas/' + ${enc.id} + '/eliminar'}"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('¿Eliminar este registro?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(encuestas)}" class="text-center py-5">
+                <div style="width:72px;height:72px;background:var(--sand-200);border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                    <i class="bi bi-collection" style="font-size:2rem;color:var(--clay-300);"></i>
+                </div>
+                <h5 style="color:var(--ink-soft);">Sin registros en el servidor</h5>
+                <p style="color:var(--ink-muted);font-size:.875rem;">
+                    Tus encuestas aparecerán aquí una vez sincronizadas
+                </p>
+                <a href="/encuestas/nueva" class="btn btn-clay mt-2">Crear primera encuesta</a>
+            </div>
+        </div>
+
+        <!-- TAB LOCAL -->
+        <div class="tab-pane fade" id="tab-local">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="mb-0" style="font-size:.85rem;color:var(--ink-muted);">
+                    Registros guardados en este dispositivo, sin conexión.
+                </p>
+                <button class="btn btn-olive btn-sm" onclick="sincronizarTodo()">
+                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo
+                </button>
+            </div>
+
+            <div id="lista-local">
+                <div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;">
+                    <i class="bi bi-hdd" style="font-size:2rem;color:var(--clay-300);display:block;margin-bottom:.5rem;"></i>
+                    Cargando registros locales...
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function cargarLocales() {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var badge = document.getElementById('badge-local-count');
+            badge.textContent = pendientes.filter(p => !p.sincronizado).length;
+
+            var container = document.getElementById('lista-local');
+            if (!pendientes.length) {
+                container.innerHTML = '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;"><i class="bi bi-check-circle" style="font-size:2rem;color:var(--olive-300);display:block;margin-bottom:.5rem;"></i>No hay registros locales pendientes</div>';
+                return;
+            }
+
+            var html = '<div class="row g-3">';
+            pendientes.forEach(function(enc, idx) {
+                var sinc = enc.sincronizado;
+                html += '<div class="col-md-6">';
+                html += '<div class="card" style="border-left:3px solid '+(sinc?'var(--olive-400)':'var(--terra-400)')+'!important;">';
+                html += '<div class="card-body py-3 px-4">';
+                html += '<div class="d-flex justify-content-between align-items-start">';
+                html += '<div><strong style="font-size:.9rem;">'+enc.nombre+'</strong>';
+                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);"><i class="bi bi-geo-alt me-1"></i>'+enc.sector+'</span></div>';
+                html += '<span class="badge '+(sinc?'badge-olive':'badge-terra')+'">'+(sinc?'Sincronizado':'Pendiente')+'</span>';
+                html += '</div>';
+                html += '<div class="d-flex gap-2 mt-3">';
+                if (!sinc) html += '<button class="btn btn-clay btn-sm" onclick="enviarLocal('+idx+')"><i class="bi bi-cloud-upload me-1"></i>Enviar</button>';
+                html += '<button class="btn btn-outline-danger btn-sm" onclick="eliminarLocal('+idx+')"><i class="bi bi-trash"></i></button>';
+                html += '</div></div></div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function enviarLocal(idx) {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var enc = pendientes[idx];
+            if (!navigator.onLine) { alert('Sin conexión.'); return; }
+            try {
+                var r = await fetch('/api/encuestas', {
+                    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(enc)
+                });
+                if (r.ok) {
+                    pendientes[idx].sincronizado = true;
+                    localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+                    cargarLocales();
+                } else { alert('Error al sincronizar.'); }
+            } catch(e) { alert('Error de conexión.'); }
+        }
+
+        function eliminarLocal(idx) {
+            if (!confirm('¿Eliminar este registro local?')) return;
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            pendientes.splice(idx, 1);
+            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+            cargarLocales();
+        }
+
+        async function sincronizarTodo() {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var noSync = pendientes.filter(p => !p.sincronizado);
+            if (!noSync.length) { alert('No hay registros pendientes.'); return; }
+            if (!navigator.onLine) { alert('Sin conexión.'); return; }
+            for (var i = 0; i < pendientes.length; i++) {
+                if (pendientes[i].sincronizado) continue;
+                try {
+                    var r = await fetch('/api/encuestas', {
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(pendientes[i])
+                    });
+                    if (r.ok) pendientes[i].sincronizado = true;
+                } catch(e) {}
+            }
+            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+            cargarLocales();
+        }
+
+        document.addEventListener('DOMContentLoaded', cargarLocales);
+        document.querySelector('[href="#tab-local"]').addEventListener('click', function() {
+            setTimeout(cargarLocales, 100);
+        });
+    </script>
+
+</main>
+</body>
+</html>

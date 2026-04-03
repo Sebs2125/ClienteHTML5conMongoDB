@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Detalle de Encuesta', ~{::main})}">
+<head><title>Detalle Encuesta</title></head>
+<body>
+<main>
+
+    <div class="section-header mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-1">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/mis-encuestas">Mis Encuestas</a></li>
+                    <li class="breadcrumb-item active" th:text="${encuesta.nombre}">Encuesta</li>
+                </ol>
+            </nav>
+            <h2 th:text="${encuesta.nombre}">Nombre</h2>
+            <p class="section-subtitle">
+                Registrado por <strong th:text="${encuesta.usuario.nombre}">—</strong>
+                el <span th:text="${#temporals.format(encuesta.fechaRegistro, 'dd MMMM yyyy, HH:mm')}">—</span>
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{'/encuestas/' + ${encuesta.id} + '/editar'}" class="btn btn-clay-outline">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+            <form th:action="@{'/encuestas/' + ${encuesta.id} + '/eliminar'}"
+                  method="post" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar esta encuesta?')">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i>Eliminar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Datos principales -->
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header clay-header">
+          <span style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:white;">
+            <i class="bi bi-person-lines-fill me-2"></i>Datos del Encuestado
+          </span>
+                </div>
+                <div class="card-body p-4">
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nombre Completo</label>
+                            <div style="padding:.65rem .9rem;background:var(--sand-100);border:1px solid var(--clay-200);
+                          border-radius:var(--radius);font-size:.9rem;" th:text="${encuesta.nombre}">—</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Sector</label>
+                            <div style="padding:.65rem .9rem;background:var(--sand-100);border:1px solid var(--clay-200);
+                          border-radius:var(--radius);font-size:.9rem;">
+                                <i class="bi bi-geo-alt me-1" style="color:var(--terra-400);"></i>
+                                <span th:text="${encuesta.sector}">—</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nivel Escolar</label>
+                            <div style="padding:.65rem .9rem;background:var(--sand-100);border:1px solid var(--clay-200);
+                          border-radius:var(--radius);font-size:.9rem;">
+                                <i class="bi bi-mortarboard me-1" style="color:var(--olive-400);"></i>
+                                <span th:text="${encuesta.nivelEscolar}">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Geolocalización -->
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label mb-0">Ubicación GPS</label>
+                        <span th:if="${encuesta.latitud != null}" class="badge badge-olive">Capturada</span>
+                        <span th:unless="${encuesta.latitud != null}" class="badge badge-clay">Sin ubicación</span>
+                    </div>
+                    <div th:if="${encuesta.latitud != null}"
+                         style="font-family:var(--font-mono);font-size:.82rem;color:var(--ink-soft);
+                      background:var(--sand-100);padding:.7rem 1rem;border-radius:var(--radius);
+                      border:1px solid var(--clay-200);">
+                        <i class="bi bi-pin-map me-2" style="color:var(--olive-400);"></i>
+                        Lat: <strong th:text="${encuesta.latitud}">—</strong>
+                        &nbsp;/&nbsp;
+                        Lng: <strong th:text="${encuesta.longitud}">—</strong>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Mini mapa -->
+            <div class="card" th:if="${encuesta.latitud != null}">
+                <div class="card-header">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-map me-2" style="color:var(--olive-400);"></i>Ubicación en el Mapa
+          </span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="detalle-map" style="height:260px;border-radius:0 0 var(--radius-lg) var(--radius-lg);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Foto y metadatos -->
+        <div class="col-lg-5">
+
+            <!-- Foto -->
+            <div class="card mb-4">
+                <div class="card-header">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-camera me-2" style="color:var(--terra-400);"></i>Fotografía
+          </span>
+                </div>
+                <div class="card-body text-center p-4">
+                    <div th:if="${encuesta.fotoBase64 != null}">
+                        <img th:src="${encuesta.fotoBase64}" alt="Foto encuestado"
+                             style="max-width:100%;max-height:280px;object-fit:cover;
+                        border-radius:var(--radius-lg);box-shadow:var(--shadow-md);
+                        border:2px solid var(--clay-200);">
+                    </div>
+                    <div th:unless="${encuesta.fotoBase64 != null}"
+                         style="height:160px;background:var(--sand-200);border-radius:var(--radius-lg);
+                      display:flex;align-items:center;justify-content:center;
+                      color:var(--ink-muted);font-size:.85rem;flex-direction:column;gap:.5rem;
+                      border:1.5px dashed var(--clay-300);">
+                        <i class="bi bi-image" style="font-size:2.5rem;color:var(--clay-300);"></i>
+                        Sin fotografía
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadatos -->
+            <div class="card">
+                <div class="card-header">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-info-circle me-2" style="color:var(--clay-400);"></i>Metadatos
+          </span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-4">
+                        <span style="font-size:.82rem;color:var(--ink-muted);">Encuestador</span>
+                        <span style="font-size:.85rem;font-weight:600;" th:text="${encuesta.usuario.nombre}">—</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-4">
+                        <span style="font-size:.82rem;color:var(--ink-muted);">Fecha</span>
+                        <span style="font-size:.85rem;" th:text="${#temporals.format(encuesta.fechaRegistro, 'dd/MM/yyyy HH:mm')}">—</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-4">
+                        <span style="font-size:.82rem;color:var(--ink-muted);">ID</span>
+                        <code th:text="${encuesta.id}" style="font-size:.78rem;">—</code>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var LAT = /*[[${encuesta.latitud}]]*/ null;
+        var LNG = /*[[${encuesta.longitud}]]*/ null;
+        if (LAT && LNG && document.getElementById('detalle-map')) {
+            var m = L.map('detalle-map').setView([LAT, LNG], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap'
+            }).addTo(m);
+            L.circleMarker([LAT, LNG], {
+                radius: 9, color: '#c96a3a', fillColor: '#c96a3a', fillOpacity: .8, weight: 2
+            }).addTo(m).bindPopup('Registro aquí').openPopup();
+        }
+        /*]]>*/
+    </script>
+
+</main>
+</body>
+</html>

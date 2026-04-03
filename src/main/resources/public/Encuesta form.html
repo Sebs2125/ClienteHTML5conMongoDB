@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Nueva Encuesta', ~{::main})}">
+<head><title>Nueva Encuesta</title></head>
+<body>
+<main>
+
+    <div class="section-header mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-1">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/mis-encuestas">Mis Registros</a></li>
+                    <li class="breadcrumb-item active">Nueva Encuesta</li>
+                </ol>
+            </nav>
+            <h2>Nueva Encuesta</h2>
+            <p class="section-subtitle">Llena el formulario — se guardará localmente si no hay conexión</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div id="location-status" class="sync-indicator" style="display:none;">
+                <span class="dot"></span><span id="location-text">Localizando...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Formulario -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header clay-header d-flex justify-content-between align-items-center">
+          <span style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:white;">
+            <i class="bi bi-person-lines-fill me-2"></i>Datos del Encuestado
+          </span>
+                    <span id="form-status-badge" class="badge" style="background:rgba(255,255,255,.15);color:white;font-size:.72rem;">
+            <i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>Listo
+          </span>
+                </div>
+                <div class="card-body p-4">
+                    <form id="form-encuesta" class="needs-validation" novalidate>
+                        <input type="hidden" id="field-lat" name="latitud">
+                        <input type="hidden" id="field-lng" name="longitud">
+                        <input type="hidden" id="field-foto" name="fotoBase64">
+                        <input type="hidden" id="field-usuario" name="usuarioId"
+                               th:value="${session.usuario != null ? session.usuario.id : ''}">
+
+                        <div class="row g-3">
+
+                            <!-- Nombre -->
+                            <div class="col-12">
+                                <label class="form-label">
+                                    <i class="bi bi-person me-1" style="color:var(--terra-400);"></i>Nombre Completo
+                                </label>
+                                <input type="text" id="field-nombre" name="nombre" class="form-control"
+                                       required minlength="3" maxlength="150"
+                                       placeholder="Nombre y apellido del encuestado">
+                                <div class="invalid-feedback">El nombre es obligatorio (mínimo 3 caracteres).</div>
+                            </div>
+
+                            <!-- Sector -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-geo-alt me-1" style="color:var(--terra-400);"></i>Sector
+                                </label>
+                                <input type="text" id="field-sector" name="sector" class="form-control"
+                                       required maxlength="100"
+                                       placeholder="Ej. Los Jardines, La Trinitaria">
+                                <div class="invalid-feedback">El sector es obligatorio.</div>
+                            </div>
+
+                            <!-- Nivel Escolar -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-mortarboard me-1" style="color:var(--terra-400);"></i>Nivel Escolar
+                                </label>
+                                <select id="field-nivel" name="nivelEscolar" class="form-select" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="BASICO">Básico</option>
+                                    <option value="MEDIO">Medio</option>
+                                    <option value="UNIVERSITARIO">Grado Universitario</option>
+                                    <option value="POSTGRADO">Postgrado</option>
+                                    <option value="DOCTORADO">Doctorado</option>
+                                </select>
+                                <div class="invalid-feedback">Selecciona el nivel escolar.</div>
+                            </div>
+
+                        </div>
+
+                        <!-- Divider geolocalización -->
+                        <hr>
+
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <p class="mb-0" style="font-weight:600;font-size:.85rem;color:var(--carbon-800);">
+                                    <i class="bi bi-crosshair me-1" style="color:var(--terra-400);"></i>Geolocalización
+                                </p>
+                                <p class="mb-0" style="font-size:.78rem;color:var(--ink-muted);">
+                                    Posición GPS donde se realiza la encuesta
+                                </p>
+                            </div>
+                            <button type="button" class="btn btn-sand btn-sm" onclick="obtenerUbicacion()">
+                                <i class="bi bi-crosshair2 me-1"></i>Capturar
+                            </button>
+                        </div>
+
+                        <div id="geo-result" class="d-none">
+                            <div style="background:var(--sand-200);border:1px solid var(--clay-200);
+                          border-radius:var(--radius);padding:.75rem 1rem;
+                          font-family:var(--font-mono);font-size:.8rem;color:var(--ink-soft);">
+                                <i class="bi bi-pin-map me-2" style="color:var(--olive-400);"></i>
+                                Lat: <strong id="display-lat">—</strong> &nbsp;/&nbsp;
+                                Lng: <strong id="display-lng">—</strong>
+                            </div>
+                        </div>
+
+                        <div id="geo-error" class="alert alert-warning d-none mt-2" style="font-size:.82rem;">
+                            <i class="bi bi-exclamation-triangle me-2"></i><span id="geo-error-text"></span>
+                        </div>
+
+                        <!-- Divider foto -->
+                        <hr>
+
+                        <div class="mb-1">
+                            <p class="mb-1" style="font-weight:600;font-size:.85rem;color:var(--carbon-800);">
+                                <i class="bi bi-camera me-1" style="color:var(--terra-400);"></i>Foto del Encuestado
+                            </p>
+                            <p class="mb-3" style="font-size:.78rem;color:var(--ink-muted);">
+                                Opcional — se almacena como base64 junto con el registro
+                            </p>
+
+                            <div class="d-flex gap-2 flex-wrap mb-3">
+                                <button type="button" class="btn btn-sand btn-sm" onclick="activarCamara()">
+                                    <i class="bi bi-camera me-1"></i>Cámara
+                                </button>
+                                <button type="button" class="btn btn-sand btn-sm" onclick="document.getElementById('input-foto-file').click()">
+                                    <i class="bi bi-image me-1"></i>Galería
+                                </button>
+                                <input type="file" id="input-foto-file" accept="image/*" capture="environment"
+                                       class="d-none" onchange="cargarFotoArchivo(this)">
+                            </div>
+
+                            <!-- Vista previa cámara -->
+                            <div id="camara-container" class="d-none mb-3">
+                                <div style="position:relative;border-radius:var(--radius-lg);overflow:hidden;
+                            border:1.5px solid var(--clay-200);background:#000;max-width:400px;">
+                                    <video id="video-camara" autoplay playsinline
+                                           style="width:100%;max-height:300px;object-fit:cover;display:block;"></video>
+                                    <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);">
+                                        <button type="button" class="btn btn-clay" onclick="capturarFoto()" style="border-radius:50px;">
+                                            <i class="bi bi-camera-fill me-1"></i>Tomar Foto
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sand btn-sm mt-2" onclick="cerrarCamara()">
+                                    <i class="bi bi-x me-1"></i>Cerrar cámara
+                                </button>
+                            </div>
+
+                            <!-- Canvas oculto para captura -->
+                            <canvas id="canvas-foto" class="d-none"></canvas>
+
+                            <!-- Preview foto capturada -->
+                            <div id="foto-preview-container" class="d-none">
+                                <div style="position:relative;display:inline-block;">
+                                    <img id="foto-preview" src="" alt="Foto capturada"
+                                         style="max-width:200px;border-radius:var(--radius);
+                              border:2px solid var(--olive-400);box-shadow:var(--shadow-sm);">
+                                    <button type="button" onclick="eliminarFoto()"
+                                            style="position:absolute;top:-8px;right:-8px;width:26px;height:26px;
+                                 background:#c0392b;color:white;border:none;border-radius:50%;
+                                 font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                                <p style="font-size:.78rem;color:var(--olive-500);margin-top:.4rem;">
+                                    <i class="bi bi-check-circle me-1"></i>Foto lista para guardar
+                                </p>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Botones submit -->
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-clay btn-lg flex-grow-1" id="btn-guardar">
+                                <i class="bi bi-floppy me-2"></i>Guardar Encuesta
+                            </button>
+                            <button type="button" class="btn btn-olive btn-lg" id="btn-enviar-servidor"
+                                    onclick="enviarAlServidor()" title="Enviar directamente si hay conexión">
+                                <i class="bi bi-cloud-upload me-1"></i>Enviar
+                            </button>
+                        </div>
+
+                        <p class="mt-2 mb-0" style="font-size:.77rem;color:var(--ink-muted);text-align:center;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Guardar</strong> almacena localmente (funciona sin internet).
+                            <strong>Enviar</strong> sube al servidor si hay conexión.
+                        </p>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel lateral info -->
+        <div class="col-lg-4">
+
+            <!-- Estado conexión -->
+            <div class="card mb-3" id="connection-card">
+                <div class="card-body py-3 px-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon terra" id="conn-icon">
+                            <i class="bi bi-wifi" id="conn-icon-i"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:.9rem;color:var(--carbon-800);" id="conn-title">Conectado</div>
+                            <div style="font-size:.78rem;color:var(--ink-muted);" id="conn-subtitle">Los datos se enviarán al servidor</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pendientes de sync -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-clock-history me-2" style="color:var(--terra-400);"></i>Pendientes Locales
+          </span>
+                    <span class="badge bg-primary" id="badge-pendientes">0</span>
+                </div>
+                <div class="card-body py-3 px-4">
+                    <p style="font-size:.82rem;color:var(--ink-muted);margin-bottom:.75rem;">
+                        Encuestas guardadas en este dispositivo esperando sincronización.
+                    </p>
+                    <button class="btn btn-clay-outline btn-sm w-100" onclick="sincronizarAhora()" id="btn-sync">
+                        <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Ahora
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mini mapa ubicación actual -->
+            <div class="card">
+                <div class="card-header">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-map me-2" style="color:var(--olive-400);"></i>Tu Ubicación
+          </span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="mini-map" style="height:200px;border-radius:0 0 var(--radius-lg) var(--radius-lg);
+                                     background:var(--sand-200);display:flex;align-items:center;
+                                     justify-content:center;color:var(--ink-muted);font-size:.85rem;">
+                        <div class="text-center">
+                            <i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.4rem;color:var(--clay-300);"></i>
+                            Presiona "Capturar" para ver tu posición
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Leaflet para mini mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let streamCamara = null;
+        let miniMap = null;
+        let miniMarker = null;
+
+        /* ── GEOLOCALIZACIÓN ─────────────────────── */
+        function obtenerUbicacion() {
+            var btn = document.querySelector('[onclick="obtenerUbicacion()"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-clay" style="width:14px;height:14px;border-width:2px;"></span> Localizando...';
+
+            if (!navigator.geolocation) {
+                mostrarGeoError('Tu dispositivo no soporta geolocalización.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-crosshair2 me-1"></i>Capturar';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    var lat = pos.coords.latitude.toFixed(6);
+                    var lng = pos.coords.longitude.toFixed(6);
+                    document.getElementById('field-lat').value  = lat;
+                    document.getElementById('field-lng').value  = lng;
+                    document.getElementById('display-lat').textContent = lat;
+                    document.getElementById('display-lng').textContent = lng;
+                    document.getElementById('geo-result').classList.remove('d-none');
+                    document.getElementById('geo-error').classList.add('d-none');
+
+                    inicializarMiniMapa(parseFloat(lat), parseFloat(lng));
+
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-circle me-1" style="color:var(--olive-400);"></i>Capturado';
+                },
+                function(err) {
+                    var msgs = { 1: 'Permiso de ubicación denegado.', 2: 'Ubicación no disponible.', 3: 'Tiempo agotado.' };
+                    mostrarGeoError(msgs[err.code] || 'Error desconocido.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-crosshair2 me-1"></i>Reintentar';
+                },
+                { enableHighAccuracy: true, timeout: 12000 }
+            );
+        }
+
+        function mostrarGeoError(msg) {
+            document.getElementById('geo-error-text').textContent = msg;
+            document.getElementById('geo-error').classList.remove('d-none');
+        }
+
+        function inicializarMiniMapa(lat, lng) {
+            var container = document.getElementById('mini-map');
+            container.innerHTML = '';
+            container.style.display = '';
+
+            if (!miniMap) {
+                miniMap = L.map('mini-map', { zoomControl: true, dragging: true }).setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(miniMap);
+            } else {
+                miniMap.setView([lat, lng], 15);
+            }
+
+            if (miniMarker) miniMap.removeLayer(miniMarker);
+            miniMarker = L.circleMarker([lat, lng], {
+                radius: 8, color: '#c96a3a', fillColor: '#c96a3a', fillOpacity: .8, weight: 2
+            }).addTo(miniMap).bindPopup('Tu ubicación').openPopup();
+        }
+
+        /* ── CÁMARA ──────────────────────────────── */
+        function activarCamara() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+                .then(function(stream) {
+                    streamCamara = stream;
+                    var video = document.getElementById('video-camara');
+                    video.srcObject = stream;
+                    document.getElementById('camara-container').classList.remove('d-none');
+                })
+                .catch(function() {
+                    alert('No se pudo acceder a la cámara. Usa la opción Galería.');
+                });
+        }
+
+        function capturarFoto() {
+            var video  = document.getElementById('video-camara');
+            var canvas = document.getElementById('canvas-foto');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            var dataUrl = canvas.toDataURL('image/jpeg', .82);
+            document.getElementById('field-foto').value = dataUrl;
+            document.getElementById('foto-preview').src = dataUrl;
+            document.getElementById('foto-preview-container').classList.remove('d-none');
+            cerrarCamara();
+        }
+
+        function cargarFotoArchivo(input) {
+            if (!input.files || !input.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('field-foto').value = e.target.result;
+                document.getElementById('foto-preview').src = e.target.result;
+                document.getElementById('foto-preview-container').classList.remove('d-none');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function cerrarCamara() {
+            if (streamCamara) { streamCamara.getTracks().forEach(t => t.stop()); streamCamara = null; }
+            document.getElementById('camara-container').classList.add('d-none');
+        }
+
+        function eliminarFoto() {
+            document.getElementById('field-foto').value = '';
+            document.getElementById('foto-preview').src = '';
+            document.getElementById('foto-preview-container').classList.add('d-none');
+        }
+
+        /* ── FORMULARIO ──────────────────────────── */
+        document.getElementById('form-encuesta').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
+            guardarLocalmente();
+        });
+
+        function guardarLocalmente() {
+            var registro = {
+                id:          Date.now(),
+                nombre:      document.getElementById('field-nombre').value.trim(),
+                sector:      document.getElementById('field-sector').value.trim(),
+                nivelEscolar:document.getElementById('field-nivel').value,
+                latitud:     document.getElementById('field-lat').value || null,
+                longitud:    document.getElementById('field-lng').value || null,
+                fotoBase64:  document.getElementById('field-foto').value || null,
+                usuarioId:   document.getElementById('field-usuario').value,
+                fechaRegistro: new Date().toISOString(),
+                sincronizado: false
+            };
+
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            pendientes.push(registro);
+            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+            actualizarBadgePendientes();
+
+            mostrarExito('¡Encuesta guardada localmente! Se sincronizará cuando haya conexión.');
+
+            // Auto-intentar enviar si hay conexión
+            if (navigator.onLine) sincronizarAhora();
+        }
+
+        function mostrarExito(msg) {
+            var div = document.createElement('div');
+            div.className = 'alert alert-success';
+            div.style.animation = 'fadeUp .3s ease';
+            div.innerHTML = '<i class="bi bi-check-circle me-2"></i>' + msg;
+            document.getElementById('form-encuesta').insertAdjacentElement('beforebegin', div);
+            document.getElementById('form-encuesta').reset();
+            document.getElementById('geo-result').classList.add('d-none');
+            document.getElementById('foto-preview-container').classList.add('d-none');
+            document.getElementById('field-foto').value = '';
+            setTimeout(() => div.remove(), 5000);
+        }
+
+        function enviarAlServidor() {
+            if (!navigator.onLine) {
+                alert('Sin conexión. El registro se guardará localmente.');
+                guardarLocalmente();
+                return;
+            }
+            document.getElementById('form-encuesta').requestSubmit
+                ? document.getElementById('form-encuesta').requestSubmit()
+                : document.getElementById('form-encuesta').dispatchEvent(new Event('submit', {bubbles:true, cancelable:true}));
+        }
+
+        async function sincronizarAhora() {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var noSync = pendientes.filter(p => !p.sincronizado);
+            if (!noSync.length) return;
+            if (!navigator.onLine) { alert('Sin conexión.'); return; }
+
+            var btn = document.getElementById('btn-sync');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-clay" style="width:14px;height:14px;border-width:2px;"></span> Sincronizando...';
+
+            var errores = 0;
+            for (var reg of noSync) {
+                try {
+                    var r = await fetch('/api/encuestas', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reg)
+                    });
+                    if (r.ok) {
+                        reg.sincronizado = true;
+                    } else { errores++; }
+                } catch(e) { errores++; break; }
+            }
+
+            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+            actualizarBadgePendientes();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Sincronizar Ahora';
+
+            if (errores === 0) {
+                alert('✅ Todos los registros sincronizados correctamente.');
+            } else {
+                alert('⚠️ Se sincronizaron algunos registros. ' + errores + ' fallaron, se reintentará luego.');
+            }
+        }
+
+        function actualizarBadgePendientes() {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var noSync = pendientes.filter(p => !p.sincronizado).length;
+            document.getElementById('badge-pendientes').textContent = noSync;
+            var globalBadge = document.getElementById('pending-count');
+            var globalContainer = document.getElementById('pending-badge');
+            if (globalBadge) globalBadge.textContent = noSync;
+            if (globalContainer) globalContainer.style.display = noSync > 0 ? 'inline-flex' : 'none';
+        }
+
+        /* ── ESTADO CONEXIÓN ─────────────────────── */
+        function actualizarEstadoConexion() {
+            var online = navigator.onLine;
+            var icon   = document.getElementById('conn-icon');
+            var iconI  = document.getElementById('conn-icon-i');
+            var title  = document.getElementById('conn-title');
+            var sub    = document.getElementById('conn-subtitle');
+            var banner = document.getElementById('offline-banner');
+            if (online) {
+                icon.className  = 'stat-icon olive';
+                iconI.className = 'bi bi-wifi';
+                title.textContent  = 'Conectado';
+                sub.textContent    = 'Los datos se enviarán al servidor';
+                banner.classList.remove('visible');
+            } else {
+                icon.className  = 'stat-icon terra';
+                iconI.className = 'bi bi-wifi-off';
+                title.textContent  = 'Sin Conexión';
+                sub.textContent    = 'Los registros se guardarán localmente';
+                banner.classList.add('visible');
+            }
+        }
+
+        window.addEventListener('online',  function() { actualizarEstadoConexion(); sincronizarAhora(); });
+        window.addEventListener('offline', actualizarEstadoConexion);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarEstadoConexion();
+            actualizarBadgePendientes();
+            // Auto-captura ubicación
+            obtenerUbicacion();
+        });
+    </script>
+</main>
+</body>
+</html>

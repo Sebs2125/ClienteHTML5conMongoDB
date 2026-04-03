@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Registro', ~{::main})}">
+<head><title>Registro</title></head>
+<body>
+<main>
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+
+            <div class="text-center mb-4 mt-2">
+                <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--olive-400),var(--olive-500));
+                  border-radius:var(--radius-lg);display:inline-flex;align-items:center;justify-content:center;
+                  box-shadow:0 6px 20px rgba(97,114,74,.3);margin-bottom:.75rem;">
+                    <i class="bi bi-person-plus" style="font-size:1.5rem;color:white;"></i>
+                </div>
+                <h2>Crear Cuenta</h2>
+                <p style="color:var(--ink-muted);font-size:.9rem;">Únete al equipo de encuestadores</p>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-4">
+
+                    <div th:if="${error}" class="alert alert-danger mb-3">
+                        <i class="bi bi-exclamation-circle me-2"></i><span th:text="${error}"></span>
+                    </div>
+
+                    <form action="/registro" method="post" class="needs-validation" novalidate
+                          onsubmit="return validarRegistro()">
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" name="nombre" class="form-control" required minlength="3" maxlength="100"
+                                       placeholder="Ej. María García López">
+                                <div class="invalid-feedback">Mínimo 3 caracteres.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Usuario</label>
+                                <input type="text" name="username" class="form-control" required minlength="3" maxlength="50"
+                                       placeholder="mgarcia">
+                                <div class="invalid-feedback">Mínimo 3 caracteres.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control" required
+                                       placeholder="correo@pucmm.edu.do">
+                                <div class="invalid-feedback">Email inválido.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña</label>
+                                <input type="password" name="password" id="reg-password" class="form-control" required minlength="6"
+                                       placeholder="Mínimo 6 caracteres">
+                                <div class="invalid-feedback">Mínimo 6 caracteres.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Confirmar Contraseña</label>
+                                <input type="password" id="reg-confirm" class="form-control" required
+                                       placeholder="Repite la contraseña">
+                                <div class="invalid-feedback" id="confirm-feedback">Las contraseñas no coinciden.</div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <button type="submit" class="btn btn-clay w-100 py-2 mt-1">
+                            <i class="bi bi-person-check me-2"></i>Registrarme
+                        </button>
+                    </form>
+
+                    <hr>
+                    <p class="text-center mb-0" style="font-size:.875rem;color:var(--ink-muted);">
+                        ¿Ya tienes cuenta? <a href="/login" style="color:var(--terra-500);font-weight:600;">Inicia sesión</a>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function validarRegistro() {
+            var form = document.querySelector('.needs-validation');
+            var p1 = document.getElementById('reg-password');
+            var p2 = document.getElementById('reg-confirm');
+            if (p1.value !== p2.value) {
+                p2.setCustomValidity('no-match');
+                p2.classList.add('is-invalid');
+                form.classList.add('was-validated');
+                return false;
+            }
+            p2.setCustomValidity('');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return false;
+            }
+            return true;
+        }
+        document.getElementById('reg-confirm').addEventListener('input', function(){
+            this.setCustomValidity('');
+            this.classList.remove('is-invalid');
+        });
+    </script>
+</main>
+</body>
+</html>

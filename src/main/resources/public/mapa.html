@@ -1,54 +1,227 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Encuestas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- CSS de Leaflet para el mapa -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        #mapa { height: 500px; width: 100%; border-radius: 8px; }
-    </style>
-</head>
-<body class="bg-light">
-<div class="container mt-4">
-    <h4 class="mb-3">Ubicación de Encuestas Realizadas</h4>
-    <div class="card shadow-sm p-3">
-        <div id="mapa"></div>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Mapa de Registros', ~{::main})}">
+<head><title>Mapa</title></head>
+<body>
+<main>
+
+    <div class="section-header mb-4">
+        <div>
+            <h2>Mapa de Registros</h2>
+            <p class="section-subtitle">Distribución geográfica de las encuestas realizadas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sand btn-sm" onclick="filtrarPorNivel('')" id="filtro-todos">
+                Todos <span class="badge ms-1" id="total-badge"
+                            style="background:var(--terra-400);color:white;">0</span>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-sand btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                    Filtrar por nivel
+                </button>
+                <ul class="dropdown-menu dropdown-menu-clay">
+                    <li><a class="dropdown-item" href="#" onclick="filtrarPorNivel('BASICO')">Básico</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filtrarPorNivel('MEDIO')">Medio</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filtrarPorNivel('UNIVERSITARIO')">Universitario</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filtrarPorNivel('POSTGRADO')">Postgrado</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filtrarPorNivel('DOCTORADO')">Doctorado</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- JS de Leaflet -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    // Inicializar el mapa centrado en Rep. Dominicana (Zona Norte aprox)
-    const map = L.map('mapa').setView([19.4517, -70.6970], 8);
+    <!-- Stats rápidas -->
+    <div class="row g-3 mb-4" id="stats-row">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon terra"><i class="bi bi-clipboard-check"></i></div>
+                <div>
+                    <div class="stat-value" id="stat-total">—</div>
+                    <div class="stat-label">Total Encuestas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon olive"><i class="bi bi-pin-map-fill"></i></div>
+                <div>
+                    <div class="stat-value" id="stat-ubicados">—</div>
+                    <div class="stat-label">Con Ubicación</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon clay"><i class="bi bi-people-fill"></i></div>
+                <div>
+                    <div class="stat-value" id="stat-hoy">—</div>
+                    <div class="stat-label">Registradas Hoy</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon dark"><i class="bi bi-geo-alt-fill"></i></div>
+                <div>
+                    <div class="stat-value" id="stat-sectores">—</div>
+                    <div class="stat-label">Sectores</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Agregar la capa base (mapa visual de OpenStreetMap)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    <div class="row g-4">
+        <!-- Mapa principal -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+          <span style="font-weight:700;color:var(--carbon-800);">
+            <i class="bi bi-map me-2" style="color:var(--olive-400);"></i>Distribución Geográfica
+          </span>
+                    <span class="sync-indicator" id="map-loading" style="display:none;">
+            <span class="dot"></span>Cargando...
+          </span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map-container"></div>
+                </div>
+            </div>
+        </div>
 
-    // Obtener los datos del servidor (Punto 9)
-    fetch('/api/formularios')
-        .then(response => response.json())
-        .then(data => {
-            data.forEach(encuesta => {
-                // Validar que tenga coordenadas válidas
-                if(encuesta.latitud && encuesta.longitud) {
-                    const marcador = L.marker([encuesta.latitud, encuesta.longitud]).addTo(map);
-                    // Info que sale al darle clic al marcador
-                    marcador.bindPopup(`
-                            <b>${encuesta.nombre}</b><br>
-                            Sector: ${encuesta.sector}<br>
-                            Nivel: ${encuesta.nivelEscolar}<br>
-                            Encuestador: ${encuesta.usuarioRegistro}
-                        `);
-                }
+        <!-- Lista lateral -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+          <span style="font-weight:700;font-size:.85rem;color:var(--carbon-800);">
+            <i class="bi bi-list-ul me-2" style="color:var(--terra-400);"></i>Registros
+          </span>
+                    <input type="text" id="search-input" class="form-control form-control-sm"
+                           style="max-width:140px;" placeholder="Buscar..."
+                           oninput="filtrarLista(this.value)">
+                </div>
+                <div class="card-body p-0">
+                    <div id="lista-encuestas"
+                         style="max-height:430px;overflow-y:auto;">
+                        <div class="text-center py-4" style="color:var(--ink-muted);font-size:.85rem;">
+                            <span class="spinner-clay"></span><br><br>Cargando registros...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var ENCUESTAS_DATA = /*[[${encuestasJson}]]*/ '[]';
+
+        var encuestasAll = [];
+        var mapa = null;
+        var markers = [];
+        var colores = {
+            BASICO: '#c96a3a', MEDIO: '#a67c52',
+            UNIVERSITARIO: '#61724a', POSTGRADO: '#4a5a38', DOCTORADO: '#2d2a26'
+        };
+
+        function inicializar() {
+            try { encuestasAll = JSON.parse(ENCUESTAS_DATA); } catch(e) { encuestasAll = []; }
+
+            // Mapa
+            mapa = L.map('map-container', { zoomControl: true }).setView([19.45, -70.70], 9);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap'
+            }).addTo(mapa);
+
+            renderMarkers(encuestasAll);
+            renderLista(encuestasAll);
+            actualizarStats(encuestasAll);
+        }
+
+        function renderMarkers(lista) {
+            markers.forEach(m => mapa.removeLayer(m));
+            markers = [];
+            var bounds = [];
+            lista.forEach(function(enc) {
+                if (!enc.latitud || !enc.longitud) return;
+                var lat = parseFloat(enc.latitud);
+                var lng = parseFloat(enc.longitud);
+                var color = colores[enc.nivelEscolar] || '#a67c52';
+                var marker = L.circleMarker([lat, lng], {
+                    radius: 9, color: color, fillColor: color, fillOpacity: .75, weight: 2
+                }).addTo(mapa);
+                marker.bindPopup(
+                    '<div style="font-family:DM Sans,sans-serif;min-width:180px;">' +
+                    '<strong style="color:#2d2a26;">' + enc.nombre + '</strong><br>' +
+                    '<span style="color:#6b6258;font-size:.82rem;">📍 ' + enc.sector + '</span><br>' +
+                    '<span style="color:#6b6258;font-size:.82rem;">🎓 ' + enc.nivelEscolar + '</span>' +
+                    (enc.fotoBase64 ? '<br><img src="'+enc.fotoBase64+'" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;margin-top:6px;">' : '') +
+                    '</div>'
+                );
+                markers.push(marker);
+                bounds.push([lat, lng]);
             });
-        })
-        .catch(error => console.error("Error cargando formularios:", error));
-</script>
+            if (bounds.length > 0) mapa.fitBounds(bounds, { padding: [30, 30] });
+        }
+
+        function renderLista(lista) {
+            var container = document.getElementById('lista-encuestas');
+            if (!lista.length) {
+                container.innerHTML = '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.85rem;">Sin registros</div>';
+                return;
+            }
+            var html = '<div class="list-group list-group-flush">';
+            lista.forEach(function(enc) {
+                var color = colores[enc.nivelEscolar] || '#a67c52';
+                html += '<div class="list-group-item px-4 py-3" style="cursor:pointer;" onclick="centrarEn('+enc.latitud+','+enc.longitud+')">';
+                html += '<div class="d-flex justify-content-between align-items-start">';
+                html += '<div><strong style="font-size:.875rem;color:var(--carbon-800);">' + enc.nombre + '</strong>';
+                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);"><i class="bi bi-geo-alt me-1"></i>' + enc.sector + '</span></div>';
+                html += '<span style="width:10px;height:10px;background:'+color+';border-radius:50%;display:inline-block;flex-shrink:0;margin-top:4px;"></span>';
+                html += '</div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function actualizarStats(lista) {
+            var hoy = new Date().toDateString();
+            var conUbicacion = lista.filter(e => e.latitud).length;
+            var hoyCount = lista.filter(e => new Date(e.fechaRegistro).toDateString() === hoy).length;
+            var sectores = [...new Set(lista.map(e => e.sector))].length;
+
+            document.getElementById('stat-total').textContent    = lista.length;
+            document.getElementById('stat-ubicados').textContent = conUbicacion;
+            document.getElementById('stat-hoy').textContent      = hoyCount;
+            document.getElementById('stat-sectores').textContent = sectores;
+            document.getElementById('total-badge').textContent   = lista.length;
+        }
+
+        function filtrarPorNivel(nivel) {
+            var filtrados = nivel ? encuestasAll.filter(e => e.nivelEscolar === nivel) : encuestasAll;
+            renderMarkers(filtrados);
+            renderLista(filtrados);
+        }
+
+        function filtrarLista(texto) {
+            var t = texto.toLowerCase();
+            var filtrados = encuestasAll.filter(e =>
+                e.nombre.toLowerCase().includes(t) || e.sector.toLowerCase().includes(t)
+            );
+            renderLista(filtrados);
+        }
+
+        function centrarEn(lat, lng) {
+            if (lat && lng) mapa.setView([lat, lng], 15);
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializar);
+        /*]]>*/
+    </script>
+
+</main>
 </body>
 </html>

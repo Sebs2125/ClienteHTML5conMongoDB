@@ -20,26 +20,24 @@ import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 /**
  * Main — Punto de entrada de la aplicación
- *
- * Responsabilidades:
- *  1. Conectar a MongoDB Atlas
- *  2. Configurar Jackson (JSON)
- *  3. Crear el servidor Javalin
- *  4. Instanciar e inyectar los controladores
- *  5. Arrancar el servidor gRPC
- *  6. Crear datos de prueba si la BD está vacía
  */
 public class Main
 {
+    private static TemplateEngine templateEngine;
+
     public static void main(String[] args)
     {
         // ── 1. MongoDB Atlas ───────────────────────────────────────────────
@@ -74,9 +72,20 @@ public class Main
         // ── 4. Algoritmo JWT compartido ────────────────────────────────────
         Algorithm algoritmoJWT = Algorithm.HMAC256("programadorWeb123");
 
-        // ── 5. Javalin ─────────────────────────────────────────────────────
+        // ── 5. Inicializar Thymeleaf ───────────────────────────────────────
+        inicializarThymeleaf();
+
+        // ── 6. Javalin ─────────────────────────────────────────────────────
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
+            // Usar Thymeleaf como renderizador
+            config.fileRenderer((file, model, ctx) -> {
+                Context thymeleafCtx = new Context();
+                if (model != null) {
+                    thymeleafCtx.setVariables((Map<String, Object>) model);
+                }
+                return templateEngine.process(file.replaceAll("\\.html$", ""), thymeleafCtx);
+            });
         }).start(7000);
 
         System.out.println("✅ Servidor Javalin en http://localhost:7000");
@@ -85,7 +94,7 @@ public class Main
         app.get("/", ctx -> ctx.redirect("/login"));
         app.get("/api/status", ctx -> ctx.result("OK"));
 
-        // ── 6. Registrar controladores ─────────────────────────────────────
+        // ── 7. Registrar controladores ─────────────────────────────────────
         new AuthControlador(colUsuarios)
                 .registrarRutas(app);
 
@@ -103,8 +112,21 @@ public class Main
 
         System.out.println("✅ Todos los controladores registrados");
 
-        // ── 7. Servidor gRPC ───────────────────────────────────────────────
+        // ── 8. Servidor gRPC ───────────────────────────────────────────────
         iniciarGRPC(colFormularios);
+    }
+
+    // ── Inicializar Thymeleaf ──────────────────────────────────────────────
+    private static void inicializarThymeleaf()
+    {
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setCacheable(false); // Desactivar caché en desarrollo
+        resolver.setCharacterEncoding("UTF-8");
+
+        templateEngine = new TemplateEngine();
+        templateEngine.setTemplateResolver(resolver);
     }
 
     // ── Helpers privados ───────────────────────────────────────────────────

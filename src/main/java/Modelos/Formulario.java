@@ -1,5 +1,6 @@
 package Modelos;
 
+import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 
@@ -13,11 +14,13 @@ public class Formulario {
     private double latitud;
     private double longitud;
     private String fotoBase64;
-
     private LocalDateTime fechaRegistro;
+
+    // Campo transitorio: NO se guarda en MongoDB, se llena en Java
+    @BsonIgnore
     private Usuario usuario;
 
-    public Formulario () {}
+    public Formulario() {}
 
     public ObjectId getId() { return id; }
     public void setId(ObjectId id) { this.id = id; }
@@ -46,6 +49,8 @@ public class Formulario {
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
 
+    @BsonIgnore
     public Usuario getUsuario() { return usuario; }
+    @BsonIgnore
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 }

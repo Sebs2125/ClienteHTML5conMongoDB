@@ -13,16 +13,17 @@ public class Usuario {
 
     public Usuario() {}
 
-    public Usuario(String nombre, String username, String email, String password, String rol) {
-        this.nombre = nombre;
+    public Usuario(String username, String password, String rol) {
         this.username = username;
-        this.email = email;
         this.password = password;
         this.rol = rol;
     }
 
-    public Usuario(String username, String password, String rol) {
+    public Usuario( String username, String nombre, String email, String password, String rol) {
+
         this.username = username;
+        this.nombre = nombre;
+        this.email = email;
         this.password = password;
         this.rol = rol;
     }

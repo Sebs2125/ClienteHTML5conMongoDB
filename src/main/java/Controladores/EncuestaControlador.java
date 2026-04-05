@@ -45,10 +45,11 @@ public class EncuestaControlador
     }
 
     // ── GET /encuestas/nueva ───────────────────────────────────────────────
-    private void mostrarFormulario(io.javalin.http.Context ctx)
-    {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
-        ctx.render("/templates/Encuesta_form.html", new HashMap<>());
+    private void mostrarFormulario(io.javalin.http.Context ctx) {
+        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+        Map<String, Object> model = new HashMap<>();
+        model.put("usuario", ctx.sessionAttribute("usuario"));
+        ctx.render("encuesta_form.html", model);
     }
 
     // ── POST /api/encuestas (sincronización offline desde el JS) ───────────
@@ -75,7 +76,7 @@ public class EncuestaControlador
     // ── GET /mis-encuestas ─────────────────────────────────────────────────
     private void misEncuestas(io.javalin.http.Context ctx)
     {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
         Usuario sesion = ctx.sessionAttribute("usuario");
 
         List<Formulario> encuestas = colFormularios
@@ -89,13 +90,13 @@ public class EncuestaControlador
         model.put("encuestas", encuestas);
         model.put("exito", ctx.queryParam("exito"));
         model.put("error", ctx.queryParam("error"));
-        ctx.render("/templates/Me_encuesta.html", model);
+        ctx.render("me_encuesta.html", model);
     }
 
     // ── GET /encuestas/{id} ────────────────────────────────────────────────
     private void detalleEncuesta(io.javalin.http.Context ctx)
     {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
         try {
             Formulario f = colFormularios
@@ -108,7 +109,7 @@ public class EncuestaControlador
 
             Map<String, Object> model = new HashMap<>();
             model.put("encuesta", f);
-            ctx.render("/templates/Encuesta_detalles.html", model);
+            ctx.render("encuesta_detalles.html", model);
 
         } catch (IllegalArgumentException e) {
             ctx.status(400).result("ID de encuesta inválido");
@@ -118,7 +119,7 @@ public class EncuestaControlador
     // ── POST /encuestas/{id}/eliminar ──────────────────────────────────────
     private void eliminarEncuesta(io.javalin.http.Context ctx)
     {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
         try {
             colFormularios.deleteOne(eq("_id", new ObjectId(ctx.pathParam("id"))));
@@ -131,7 +132,7 @@ public class EncuestaControlador
     // ── GET /mapa ──────────────────────────────────────────────────────────
     private void mostrarMapa(io.javalin.http.Context ctx)
     {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
         List<Formulario> todas = colFormularios
                 .find()
@@ -159,7 +160,7 @@ public class EncuestaControlador
 
             Map<String, Object> model = new HashMap<>();
             model.put("encuestasJson", encuestasJson);
-            ctx.render("/templates/mapa.html", model);
+            ctx.render("mapa.html", model);
 
         } catch (Exception e) {
             ctx.status(500).result("Error al cargar el mapa: " + e.getMessage());
@@ -171,7 +172,7 @@ public class EncuestaControlador
     {
         for (Formulario f : lista) {
             if (f.getUsuarioRegistro() != null) {
-                Usuario u = colUsuarios.find(eq("usuario", f.getUsuarioRegistro())).first();
+                Usuario u = colUsuarios.find(eq("username", f.getUsuarioRegistro())).first();
                 if (u != null) {
                     u.setPassword("");
                     f.setUsuario(u);

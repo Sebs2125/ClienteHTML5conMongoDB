@@ -41,7 +41,7 @@ public class AuthControlador
         Map<String, Object> model = new HashMap<>();
         model.put("error", ctx.queryParam("error"));
         model.put("exito", ctx.queryParam("exito"));
-        ctx.render("/templates/login.html", model);
+        ctx.render("login", model);
     }
 
     // ── POST /login ────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ public class AuthControlador
         String username = ctx.formParam("username");
         String password = ctx.formParam("password");
 
-        Usuario userDb = colUsuarios.find(eq("usuario", username)).first();
+        Usuario userDb = colUsuarios.find(eq("username", username)).first();
 
         if (userDb != null && userDb.getPassword().equals(password))
         {
@@ -85,7 +85,7 @@ public class AuthControlador
     {
         Map<String, Object> model = new HashMap<>();
         model.put("error", ctx.queryParam("error"));
-        ctx.render("/templates/Registro.html", model);
+        ctx.render("registro", model);
     }
 
     // ── POST /registro ─────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ public class AuthControlador
         String password = ctx.formParam("password");
 
         // Validar que el username no exista ya
-        if (colUsuarios.find(eq("usuario", username)).first() != null) {
+        if (colUsuarios.find(eq("username", username)).first() != null) {
             ctx.redirect("/registro?error=El usuario '" + username + "' ya está en uso");
             return;
         }

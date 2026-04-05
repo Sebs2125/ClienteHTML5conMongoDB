@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Mapa de Registros', ~{::main})}">
+<head><title>Mapa</title></head>
+<body>
+<main>
+    <div class="page-header mb-5">
+        <div class="page-header-content">
+            <div>
+                <h1 class="page-title">📍 Mapa de Registros</h1>
+                <p class="page-subtitle">Visualiza la distribución geográfica de todas las encuestas realizadas</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary btn-sm" onclick="exportarDatos()"><i class="bi bi-download me-1"></i>Exportar</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="refrescarDatos()"><i class="bi bi-arrow-clockwise me-1"></i>Actualizar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid mb-5">
+        <div class="stat-card"><div class="stat-icon primary"><i class="bi bi-clipboard-check"></i></div><div class="stat-info"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Encuestas</div></div></div>
+        <div class="stat-card"><div class="stat-icon success"><i class="bi bi-pin-map-fill"></i></div><div class="stat-info"><div class="stat-value" id="stat-ubicados">0</div><div class="stat-label">Con Ubicación</div></div></div>
+        <div class="stat-card"><div class="stat-icon info"><i class="bi bi-people-fill"></i></div><div class="stat-info"><div class="stat-value" id="stat-hoy">0</div><div class="stat-label">Registradas Hoy</div></div></div>
+        <div class="stat-card"><div class="stat-icon warning"><i class="bi bi-geo-alt-fill"></i></div><div class="stat-info"><div class="stat-value" id="stat-sectores">0</div><div class="stat-label">Sectores Activos</div></div></div>
+    </div>
+
+    <div class="filters-section mb-5">
+        <div class="filters-group">
+            <label class="filter-label">Filtrar por Nivel:</label>
+            <div class="btn-group-filter">
+                <button type="button" class="btn-filter active" onclick="filtrarPorNivel('')">Todos</button>
+                <button type="button" class="btn-filter" onclick="filtrarPorNivel('BASICO')">Básico</button>
+                <button type="button" class="btn-filter" onclick="filtrarPorNivel('MEDIO')">Medio</button>
+                <button type="button" class="btn-filter" onclick="filtrarPorNivel('UNIVERSITARIO')">Universitario</button>
+                <button type="button" class="btn-filter" onclick="filtrarPorNivel('POSTGRADO')">Postgrado</button>
+            </div>
+        </div>
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Buscar..." oninput="filtrarLista(this.value)">
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="map-section">
+            <div class="card card-elevated">
+                <div class="card-header-modern">
+                    <div class="card-title-group"><i class="bi bi-map"></i><h2>Distribución Geográfica</h2></div>
+                    <div class="card-actions">
+                        <span class="sync-indicator" id="map-loading" style="display:none;"><span class="pulse-dot"></span> Cargando...</span>
+                    </div>
+                </div>
+                <div class="card-body-map"><div id="map-container"></div></div>
+            </div>
+        </div>
+
+        <div class="list-section">
+            <div class="card card-elevated">
+                <div class="card-header-modern">
+                    <div class="card-title-group"><i class="bi bi-list-ul"></i><h3>Últimos Registros</h3></div>
+                </div>
+                <div class="card-body-list">
+                    <div id="lista-encuestas" class="records-list">
+                        <div class="empty-state"><span class="spinner-modern"></span><p>Cargando registros...</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var ENCUESTAS_DATA = /*[[${encuestasJson}]]*/ '[]';
+        var encuestasAll = [];
+        var mapa = null;
+        var markers = [];
+        var colores = {BASICO: '#3b82f6', MEDIO: '#06b6d4', UNIVERSITARIO: '#10b981', POSTGRADO: '#f59e0b', DOCTORADO: '#ef4444'};
+
+        function inicializar() {
+            try { encuestasAll = JSON.parse(ENCUESTAS_DATA); } catch(e) { encuestasAll = []; }
+            mapa = L.map('map-container').setView([18.7357, -70.1627], 8);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(mapa);
+            renderMarkers(encuestasAll);
+            renderLista(encuestasAll);
+            actualizarStats(encuestasAll);
+        }
+
+        function renderMarkers(lista) {
+            markers.forEach(m => mapa.removeLayer(m));
+            markers = [];
+            var bounds = [];
+            lista.forEach(function(enc) {
+                if (!enc.latitud || !enc.longitud) return;
+                var lat = parseFloat(enc.latitud);
+                var lng = parseFloat(enc.longitud);
+                var color = colores[enc.nivelEscolar] || '#6b7280';
+                var marker = L.circleMarker([lat, lng], {radius: 8, color: color, fillColor: color, fillOpacity: 0.8, weight: 2}).addTo(mapa);
+                marker.bindPopup('<div style="min-width:180px;"><strong>' + enc.nombre + '</strong><br>📍 ' + enc.sector + '<br>🎓 ' + enc.nivelEscolar + '</div>');
+                markers.push(marker);
+                bounds.push([lat, lng]);
+            });
+            if (bounds.length > 0) mapa.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        function renderLista(lista) {
+            var container = document.getElementById('lista-encuestas');
+            if (!lista.length) { container.innerHTML = '<div class="empty-state"><p>Sin registros</p></div>'; return; }
+            var html = '<div class="records-items">';
+            lista.slice(0, 15).forEach(function(enc) {
+                var color = colores[enc.nivelEscolar] || '#6b7280';
+                html += '<div class="record-item" onclick="centrarEn(' + enc.latitud + ',' + enc.longitud + ')"><div class="record-marker" style="background:' + color + ';"></div><div class="record-content"><div class="record-name">' + enc.nombre + '</div><div class="record-meta"><span>📍 ' + enc.sector + '</span><span>' + enc.nivelEscolar + '</span></div></div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function actualizarStats(lista) {
+            var hoy = new Date().toDateString();
+            var conUbicacion = lista.filter(e => e.latitud && e.longitud).length;
+            var hoyCount = lista.filter(e => new Date(e.fechaRegistro).toDateString() === hoy).length;
+            var sectores = [...new Set(lista.map(e => e.sector))].length;
+            document.getElementById('stat-total').textContent = lista.length;
+            document.getElementById('stat-ubicados').textContent = conUbicacion;
+            document.getElementById('stat-hoy').textContent = hoyCount;
+            document.getElementById('stat-sectores').textContent = sectores;
+        }
+
+        function filtrarPorNivel(nivel) {
+            var filtrados = nivel ? encuestasAll.filter(e => e.nivelEscolar === nivel) : encuestasAll;
+            renderMarkers(filtrados);
+            renderLista(filtrados);
+        }
+
+        function filtrarLista(texto) {
+            var t = texto.toLowerCase();
+            var filtrados = encuestasAll.filter(e => e.nombre.toLowerCase().includes(t) || e.sector.toLowerCase().includes(t));
+            renderLista(filtrados);
+        }
+
+        function centrarEn(lat, lng) { if (lat && lng) mapa.setView([lat, lng], 15); }
+        function exportarDatos() { alert('Exportación en desarrollo'); }
+        function refrescarDatos() {
+            document.getElementById('map-loading').style.display = 'inline-flex';
+            setTimeout(() => { inicializar(); document.getElementById('map-loading').style.display = 'none'; }, 500);
+        }
+        document.addEventListener('DOMContentLoaded', inicializar);
+        /*]]>*/
+    </script>
+
+</main>
+</body>
+</html>

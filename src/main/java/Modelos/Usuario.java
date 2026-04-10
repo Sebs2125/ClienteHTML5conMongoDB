@@ -1,9 +1,14 @@
 package Modelos;
 
+import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Id;
 import org.bson.types.ObjectId;
 
-public class Usuario {
+@Entity("usuarios")
+public class Usuario
+{
 
+    @Id
     private ObjectId id;
     private String nombre;
     private String username;

@@ -1,11 +1,16 @@
 package Modelos;
 
+import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Id;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 
-public class Formulario {
+@Entity("formularios")
+public class Formulario
+{
 
+    @Id
     private ObjectId id;
     private String nombre;
     private String sector;

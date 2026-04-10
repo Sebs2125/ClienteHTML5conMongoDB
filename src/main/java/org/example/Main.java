@@ -14,6 +14,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import dev.morphia.Datastore;
+import dev.morphia.Morphia;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.javalin.Javalin;
@@ -24,24 +26,21 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.mongodb.client.model.Filters.eq;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 /**
  * Main — Punto de entrada de la aplicación
  */
-public class Main
-{
+public class Main {
     private static TemplateEngine templateEngine;
 
-    public static void main(String[] args)
-    {
-        // ── 1. MongoDB Atlas ───────────────────────────────────────────────
+    public static void main(String[] args) {
+
+        // ── 1. MongoDB Atlas & Inicialización ──────────────────────────────────
         String uri = "mongodb+srv://eeeb0002_db_user:3Ch9p4xut9kpE2fB@prueba0.zgrgp7d.mongodb.net/?retryWrites=true&w=majority&appName=prueba0";
 
         CodecRegistry codecRegistry = fromRegistries(
@@ -49,47 +48,52 @@ public class Main
                 fromProviders(PojoCodecProvider.builder().automatic(true).build())
         );
 
-        MongoClient   mongoClient = MongoClients.create(
+        // Se declara la conexión UNA sola vez
+        MongoClient mongoClient = MongoClients.create(
                 MongoClientSettings.builder()
                         .applyConnectionString(new ConnectionString(uri))
                         .codecRegistry(codecRegistry)
                         .build()
         );
 
-        MongoDatabase database = mongoClient.getDatabase("encuestas_db");
         System.out.println(" Conectado a MongoDB Atlas");
 
-        MongoCollection<Usuario>    colUsuarios    = database.getCollection("usuarios",    Usuario.class);
+        // ── 1.1 Configurar Morphia (ODM - Requisito 5) ─────────────────────────
+        Datastore datastore = Morphia.createDatastore(mongoClient, "encuestas_db");
+
+        // ── 1.2 Colecciones Nativas (Se mantienen para no romper Controladores) ─
+        MongoDatabase database = mongoClient.getDatabase("encuestas_db");
+        MongoCollection<Usuario> colUsuarios = database.getCollection("usuarios", Usuario.class);
         MongoCollection<Formulario> colFormularios = database.getCollection("formularios", Formulario.class);
 
-        // ── 2. Datos de prueba (solo si la BD está vacía) ──────────────────
+
+        // ── 2. Datos de prueba (solo si la BD está vacía) ──────────────────────
         inicializarDatos(colUsuarios);
 
-        // ── 3. Jackson con soporte LocalDateTime ───────────────────────────
+        // ── 3. Jackson con soporte LocalDateTime ───────────────────────────────
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // ── 4. Algoritmo JWT compartido ────────────────────────────────────
+        // ── 4. Algoritmo JWT compartido ────────────────────────────────────────
         Algorithm algoritmoJWT = Algorithm.HMAC256("programadorWeb123");
 
-        // ── 5. Inicializar Thymeleaf ───────────────────────────────────────
+        // ── 5. Inicializar Thymeleaf ───────────────────────────────────────────
         inicializarThymeleaf();
 
-        // ── 6. Javalin ─────────────────────────────────────────────────────
+        // ── 6. Javalin ─────────────────────────────────────────────────────────
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
+
             // Usar Thymeleaf como renderizador
             config.fileRenderer((file, model, ctx) -> {
                 Context thymeleafCtx = new Context();
 
-                // Crear map con los datos del modelo
                 Map<String, Object> data = new HashMap<>();
                 if (model != null) {
                     data.putAll((Map<String, Object>) model);
                 }
 
-                // Agregar la sesión para que Thymeleaf pueda accederla
                 Map<String, Object> session = new HashMap<>();
                 if (ctx.sessionAttribute("usuario") != null) {
                     session.put("usuario", ctx.sessionAttribute("usuario"));
@@ -106,35 +110,25 @@ public class Main
 
         System.out.println(" Servidor Javalin en http://localhost:7000");
 
-        // Ruta raíz
+        // Rutas base
         app.get("/", ctx -> ctx.redirect("/login"));
         app.get("/api/status", ctx -> ctx.result("OK"));
 
-        // ── 7. Registrar controladores ─────────────────────────────────────
-        new AuthControlador(colUsuarios)
-                .registrarRutas(app);
-
-        new EncuestaControlador(colFormularios, colUsuarios, mapper)
-                .registrarRutas(app);
-
-        new AdminControlador(colFormularios, colUsuarios, mapper)
-                .registrarRutas(app);
-
-        new ApiRestControlador(colFormularios, colUsuarios, algoritmoJWT)
-                .registrarRutas(app);
-
-        new WebSocketControlador(colFormularios, mapper)
-                .registrarRutas(app);
+        // ── 7. Registrar controladores ─────────────────────────────────────────
+        new AuthControlador( datastore).registrarRutas(app);
+        new EncuestaControlador( datastore, mapper).registrarRutas(app);
+        new AdminControlador(colFormularios, colUsuarios, mapper).registrarRutas(app);
+        new ApiRestControlador(colFormularios, colUsuarios, algoritmoJWT).registrarRutas(app);
+        new WebSocketControlador(colFormularios, mapper).registrarRutas(app);
 
         System.out.println(" Todos los controladores registrados");
 
-        // ── 8. Servidor gRPC ───────────────────────────────────────────────
+        // ── 8. Servidor gRPC ───────────────────────────────────────────────────
         iniciarGRPC(colFormularios);
     }
 
-    // ── Inicializar Thymeleaf ──────────────────────────────────────────────
-    private static void inicializarThymeleaf()
-    {
+    // ── Inicializar Thymeleaf ──────────────────────────────────────────────────
+    private static void inicializarThymeleaf() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
         resolver.setSuffix(".html");
@@ -145,20 +139,17 @@ public class Main
         templateEngine.setTemplateResolver(resolver);
     }
 
-    // ── Helpers privados ───────────────────────────────────────────────────
-
-    private static void inicializarDatos(MongoCollection<Usuario> colUsuarios)
-    {
+    // ── Helpers privados ───────────────────────────────────────────────────────
+    private static void inicializarDatos(MongoCollection<Usuario> colUsuarios) {
         if (colUsuarios.countDocuments() == 0) {
-            colUsuarios.insertOne(new Usuario("Administrador",  "admin",        "admin@pucmm.edu.do",       "1234", "ADMINISTRADOR"));
-            colUsuarios.insertOne(new Usuario("Encuestador 1",  "encuestador1", "enc1@pucmm.edu.do",        "1234", "ENCUESTADOR"));
-            colUsuarios.insertOne(new Usuario("Supervisor",     "supervisor",   "supervisor@pucmm.edu.do",  "1234", "SUPERVISOR"));
-            System.out.println(" Usuarios de prueba creados (admin/1234, encuestador1/1234, supervisor/1234)");
+            colUsuarios.insertOne(new Usuario("admin", "admin", "admin@pucmm.edu.do", "admin", "ADMINISTRADOR"));
+            colUsuarios.insertOne(new Usuario("Encuestador1", "encuestador1", "enc1@pucmm.edu.do", "1234", "ENCUESTADOR"));
+            colUsuarios.insertOne(new Usuario("Supervisor", "supervisor", "supervisor@pucmm.edu.do", "1234", "SUPERVISOR"));
+            System.out.println(" Usuarios de prueba creados (admin/admin, encuestador1/1234, supervisor/1234)");
         }
     }
 
-    private static void iniciarGRPC(MongoCollection<Formulario> colFormularios)
-    {
+    private static void iniciarGRPC(MongoCollection<Formulario> colFormularios) {
         try {
             Server grpcServer = ServerBuilder.forPort(50051)
                     .addService(new EncuestaServiceImpl(colFormularios))

@@ -3,7 +3,9 @@ package Controladores;
 import Modelos.Formulario;
 import Modelos.Usuario;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.client.MongoCollection;
+import dev.morphia.Datastore;
+import dev.morphia.query.Sort;
+import dev.morphia.query.filters.Filters;
 import io.javalin.Javalin;
 import org.bson.types.ObjectId;
 
@@ -11,31 +13,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Sorts.descending;
+public class EncuestaControlador {
+    private final Datastore datastore;
+    private final ObjectMapper mapper;
 
-/**
- * EncuestaControlador
- * Maneja: nueva encuesta, mis encuestas, detalle, eliminar,
- *         mapa y el endpoint de sincronización offline /api/encuestas
- */
-public class EncuestaControlador
-{
-    private final MongoCollection<Formulario> colFormularios;
-    private final MongoCollection<Usuario>    colUsuarios;
-    private final ObjectMapper                mapper;
-
-    public EncuestaControlador(MongoCollection<Formulario> colFormularios,
-                                MongoCollection<Usuario>    colUsuarios,
-                                ObjectMapper                mapper)
-    {
-        this.colFormularios = colFormularios;
-        this.colUsuarios    = colUsuarios;
-        this.mapper         = mapper;
+    // Cambiamos MongoCollection por Datastore de Morphia
+    public EncuestaControlador(Datastore datastore, ObjectMapper mapper) {
+        this.datastore = datastore;
+        this.mapper = mapper;
     }
 
-    public void registrarRutas(Javalin app)
-    {
+    public void registrarRutas(Javalin app) {
         app.get("/encuestas/nueva",              this::mostrarFormulario);
         app.post("/api/encuestas",               this::guardarEncuesta);
         app.get("/mis-encuestas",                this::misEncuestas);
@@ -52,20 +40,20 @@ public class EncuestaControlador
         ctx.render("encuesta_form.html", model);
     }
 
-    // ── POST /api/encuestas (sincronización offline desde el JS) ───────────
-    private void guardarEncuesta(io.javalin.http.Context ctx)
-    {
+    // ── POST /api/encuestas ────────────────────────────────────────────────
+    private void guardarEncuesta(io.javalin.http.Context ctx) {
         try {
             Formulario f = mapper.readValue(ctx.body(), Formulario.class);
 
-            // Si el JS no mandó usuarioRegistro, lo tomamos de la sesión activa
             if (f.getUsuarioRegistro() == null || f.getUsuarioRegistro().isBlank()) {
                 Usuario sesion = ctx.sessionAttribute("usuario");
                 if (sesion != null) f.setUsuarioRegistro(sesion.getUsername());
             }
             if (f.getFechaRegistro() == null) f.setFechaRegistro(LocalDateTime.now());
 
-            colFormularios.insertOne(f);
+            // Uso de Morphia para guardar
+            datastore.save(f);
+
             ctx.status(201).json(Map.of("ok", true, "mensaje", "Encuesta guardada correctamente"));
 
         } catch (Exception e) {
@@ -74,15 +62,15 @@ public class EncuestaControlador
     }
 
     // ── GET /mis-encuestas ─────────────────────────────────────────────────
-    private void misEncuestas(io.javalin.http.Context ctx)
-    {
+    private void misEncuestas(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
         Usuario sesion = ctx.sessionAttribute("usuario");
 
-        List<Formulario> encuestas = colFormularios
-                .find(eq("usuarioRegistro", sesion.getUsername()))
-                .sort(descending("fechaRegistro"))
-                .into(new ArrayList<>());
+        // Búsqueda con Morphia
+        List<Formulario> encuestas = datastore.find(Formulario.class)
+                .filter(Filters.eq("usuarioRegistro", sesion.getUsername()))
+                .iterator(new dev.morphia.query.FindOptions().sort(Sort.descending("fechaRegistro")))
+                .toList();
 
         enriquecer(encuestas);
 
@@ -94,13 +82,13 @@ public class EncuestaControlador
     }
 
     // ── GET /encuestas/{id} ────────────────────────────────────────────────
-    private void detalleEncuesta(io.javalin.http.Context ctx)
-    {
+    private void detalleEncuesta(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
         try {
-            Formulario f = colFormularios
-                    .find(eq("_id", new ObjectId(ctx.pathParam("id"))))
+            // Búsqueda por ID en Morphia
+            Formulario f = datastore.find(Formulario.class)
+                    .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
                     .first();
 
             if (f == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
@@ -117,32 +105,33 @@ public class EncuestaControlador
     }
 
     // ── POST /encuestas/{id}/eliminar ──────────────────────────────────────
-    private void eliminarEncuesta(io.javalin.http.Context ctx)
-    {
+    private void eliminarEncuesta(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
         try {
-            colFormularios.deleteOne(eq("_id", new ObjectId(ctx.pathParam("id"))));
+            // Eliminar con Morphia
+            datastore.find(Formulario.class)
+                    .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
+                    .delete();
+
             ctx.redirect("/mis-encuestas?exito=Encuesta eliminada correctamente");
         } catch (Exception e) {
             ctx.redirect("/mis-encuestas?error=Error al eliminar la encuesta");
         }
     }
 
-    // ── GET /mapa ──────────────────────────────────────────────────────────
-    private void mostrarMapa(io.javalin.http.Context ctx)
-    {
+    // ── GET /mapa ────────────────────────────────────��────────────────────
+    private void mostrarMapa(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
-        List<Formulario> todas = colFormularios
-                .find()
-                .sort(descending("fechaRegistro"))
-                .into(new ArrayList<>());
+        // Búsqueda de todas las encuestas con Morphia
+        List<Formulario> todas = datastore.find(Formulario.class)
+                .iterator(new dev.morphia.query.FindOptions().sort(Sort.descending("fechaRegistro")))
+                .toList();
 
         enriquecer(todas);
 
         try {
-            // Convertir a lista de Maps simples para Leaflet (evita problemas de serialización)
             List<Map<String, Object>> encuestasSimples = todas.stream().map(f -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",            f.getId() != null ? f.getId().toString() : "");
@@ -168,11 +157,14 @@ public class EncuestaControlador
     }
 
     // ── Helper: enriquece formularios con el objeto Usuario completo ───────
-    private void enriquecer(List<Formulario> lista)
-    {
+    private void enriquecer(List<Formulario> lista) {
         for (Formulario f : lista) {
             if (f.getUsuarioRegistro() != null) {
-                Usuario u = colUsuarios.find(eq("username", f.getUsuarioRegistro())).first();
+                // Búsqueda del usuario con Morphia
+                Usuario u = datastore.find(Usuario.class)
+                        .filter(Filters.eq("username", f.getUsuarioRegistro()))
+                        .first();
+
                 if (u != null) {
                     u.setPassword("");
                     f.setUsuario(u);

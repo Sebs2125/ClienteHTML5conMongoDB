@@ -269,7 +269,7 @@
         let miniMap = null;
         let miniMarker = null;
 
-        /* ── GEOLOCALIZACIÓN ─────────────────────── */
+        //GEOLOCALIZACIÓN
         function obtenerUbicacion() {
             var btn = document.querySelector('[onclick="obtenerUbicacion()"]');
             btn.disabled = true;
@@ -334,7 +334,7 @@
             }).addTo(miniMap).bindPopup('Tu ubicación').openPopup();
         }
 
-        /* ── CÁMARA ──────────────────────────────── */
+        // CÁMARA
         function activarCamara() {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
                 .then(function(stream) {

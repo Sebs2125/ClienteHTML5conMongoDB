@@ -21,7 +21,6 @@ public class Formulario
     private String fotoBase64;
     private LocalDateTime fechaRegistro;
 
-    // Campo transitorio: NO se guarda en MongoDB, se llena en Java
     @BsonIgnore
     private Usuario usuario;
 

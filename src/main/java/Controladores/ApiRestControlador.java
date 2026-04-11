@@ -16,13 +16,6 @@ import java.util.Map;
 
 import static com.mongodb.client.model.Filters.eq;
 
-/**
- * ApiRestControlador
- * Maneja los endpoints REST protegidos con JWT:
- *   POST /api/rest/auth                        → obtener token
- *   GET  /api/rest/formularios/mis-registros   → formularios del usuario
- *   POST /api/rest/formularios/crear           → crear formulario
- */
 public class ApiRestControlador
 {
     private final MongoCollection<Formulario> colFormularios;
@@ -40,18 +33,18 @@ public class ApiRestControlador
 
     public void registrarRutas(Javalin app)
     {
-        // Ruta pública: obtener token JWT
+        //Ruta pública: para obtener un token JWT
         app.post("/api/rest/auth", this::autenticar);
 
-        // Middleware: protege todas las rutas /api/rest/formularios/*
+        //Middleware: protege todas las rutas rest
         app.before("/api/rest/formularios/*", this::validarJWT);
 
-        // Rutas protegidas
+        //Rutas protegidas
         app.get("/api/rest/formularios/mis-registros", this::misRegistros);
         app.post("/api/rest/formularios/crear",        this::crearFormulario);
     }
 
-    // ── POST /api/rest/auth ────────────────────────────────────────────────
+    //POST
     private void autenticar(io.javalin.http.Context ctx)
     {
         try {
@@ -77,7 +70,7 @@ public class ApiRestControlador
         }
     }
 
-    // ── Middleware JWT ─────────────────────────────────────────────────────
+    //Middleware JWT
     private void validarJWT(io.javalin.http.Context ctx)
     {
         String header = ctx.header("Authorization");
@@ -100,7 +93,7 @@ public class ApiRestControlador
         }
     }
 
-    // ── GET /api/rest/formularios/mis-registros ────────────────────────────
+    //GET
     private void misRegistros(io.javalin.http.Context ctx)
     {
         String usuarioLogueado = ctx.attribute("usuarioJWT");
@@ -110,7 +103,7 @@ public class ApiRestControlador
         ctx.json(lista);
     }
 
-    // ── POST /api/rest/formularios/crear ───────────────────────────────────
+    //POST
     private void crearFormulario(io.javalin.http.Context ctx)
     {
         try {

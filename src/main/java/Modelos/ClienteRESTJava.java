@@ -22,7 +22,7 @@ public class ClienteRESTJava extends JFrame
         JButton btnListar = new JButton("2. Listar Encuestas");
         JTextArea txtResultado = new JTextArea();
 
-        // Acción de Login
+        //Login
         btnLogin.addActionListener(e -> {
             try {
                 // Ajusta el JSON y la URL a tu API
@@ -46,7 +46,7 @@ public class ClienteRESTJava extends JFrame
             }
         });
 
-        // Acción de Listar
+        //Listar
         btnListar.addActionListener(e -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()

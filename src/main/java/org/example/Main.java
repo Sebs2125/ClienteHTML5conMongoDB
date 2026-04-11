@@ -40,7 +40,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // ── 1. MongoDB Atlas & Inicialización ──────────────────────────────────
+        //1- MongoDB Atlas & Inicialización
         String uri = "mongodb+srv://eeeb0002_db_user:3Ch9p4xut9kpE2fB@prueba0.zgrgp7d.mongodb.net/?retryWrites=true&w=majority&appName=prueba0";
 
         CodecRegistry codecRegistry = fromRegistries(
@@ -48,7 +48,6 @@ public class Main {
                 fromProviders(PojoCodecProvider.builder().automatic(true).build())
         );
 
-        // Se declara la conexión UNA sola vez
         MongoClient mongoClient = MongoClients.create(
                 MongoClientSettings.builder()
                         .applyConnectionString(new ConnectionString(uri))
@@ -58,30 +57,30 @@ public class Main {
 
         System.out.println(" Conectado a MongoDB Atlas");
 
-        // ── 1.1 Configurar Morphia (ODM - Requisito 5) ─────────────────────────
+        //2- Configurar Morphia (ODM-Requisito 5)
         Datastore datastore = Morphia.createDatastore(mongoClient, "encuestas_db");
 
-        // ── 1.2 Colecciones Nativas (Se mantienen para no romper Controladores) ─
+        //3- Colecciones Nativas
         MongoDatabase database = mongoClient.getDatabase("encuestas_db");
         MongoCollection<Usuario> colUsuarios = database.getCollection("usuarios", Usuario.class);
         MongoCollection<Formulario> colFormularios = database.getCollection("formularios", Formulario.class);
 
 
-        // ── 2. Datos de prueba (solo si la BD está vacía) ──────────────────────
+        //4- Datos de prueba (solo si la BD está vacía)
         inicializarDatos(colUsuarios);
 
-        // ── 3. Jackson con soporte LocalDateTime ───────────────────────────────
+        //5- Jackson con soporte LocalDateTime
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // ── 4. Algoritmo JWT compartido ────────────────────────────────────────
+        //4- Algoritmo JWT compartido
         Algorithm algoritmoJWT = Algorithm.HMAC256("programadorWeb123");
 
-        // ── 5. Inicializar Thymeleaf ───────────────────────────────────────────
+        //5- Inicializar Thymeleaf
         inicializarThymeleaf();
 
-        // ── 6. Javalin ─────────────────────────────────────────────────────────
+        //6- Configuración de Javalin
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
 
@@ -114,7 +113,7 @@ public class Main {
         app.get("/", ctx -> ctx.redirect("/login"));
         app.get("/api/status", ctx -> ctx.result("OK"));
 
-        // ── 7. Registrar controladores ─────────────────────────────────────────
+        //7- Registrar controladores
         new AuthControlador( datastore).registrarRutas(app);
         new EncuestaControlador( datastore, mapper).registrarRutas(app);
         new AdminControlador(colFormularios, colUsuarios, mapper).registrarRutas(app);
@@ -123,11 +122,11 @@ public class Main {
 
         System.out.println(" Todos los controladores registrados");
 
-        // ── 8. Servidor gRPC ───────────────────────────────────────────────────
+        //8- Servidor gRPC
         iniciarGRPC(colFormularios);
     }
 
-    // ── Inicializar Thymeleaf ──────────────────────────────────────────────────
+    //9- Inicializar Thymeleaf
     private static void inicializarThymeleaf() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
@@ -139,7 +138,7 @@ public class Main {
         templateEngine.setTemplateResolver(resolver);
     }
 
-    // ── Helpers privados ───────────────────────────────────────────────────────
+    //Helpers privados
     private static void inicializarDatos(MongoCollection<Usuario> colUsuarios) {
         if (colUsuarios.countDocuments() == 0) {
             colUsuarios.insertOne(new Usuario("admin", "admin", "admin@pucmm.edu.do", "admin", "ADMINISTRADOR"));

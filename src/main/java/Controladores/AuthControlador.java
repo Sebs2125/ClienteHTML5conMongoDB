@@ -8,10 +8,6 @@ import io.javalin.Javalin;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * AuthControlador
- * Maneja: GET /login, POST /login, GET /logout, GET /registro, POST /registro
- */
 public class AuthControlador {
 
     private final Datastore datastore;
@@ -29,7 +25,7 @@ public class AuthControlador {
         app.post("/registro",this::procesarRegistro);
     }
 
-    // ── GET /login ─────────────────────────────────────────────────────────
+    //GET
     private void mostrarLogin(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") != null) {
             ctx.redirect("/encuestas/nueva");
@@ -41,7 +37,7 @@ public class AuthControlador {
         ctx.render("login.html", model);
     }
 
-    // ── POST /login ────────────────────────────────────────────────────────
+    //POST
     private void procesarLogin(io.javalin.http.Context ctx) {
         String username = ctx.formParam("username");
         String password = ctx.formParam("password");
@@ -69,27 +65,26 @@ public class AuthControlador {
         }
     }
 
-    // ── GET /logout ────────────────────────────────────────────────────────
+    //GET
     private void logout(io.javalin.http.Context ctx) {
         ctx.req().getSession().invalidate();
         ctx.redirect("/login?exito=Sesión cerrada correctamente");
     }
 
-    // ── GET /registro ──────────────────────────────────────────────────────
+    //GET
     private void mostrarRegistro(io.javalin.http.Context ctx) {
         Map<String, Object> model = new HashMap<>();
         model.put("error", ctx.queryParam("error"));
         ctx.render("registro.html", model);
     }
 
-    // ── POST /registro ─────────────────────────────────────────────────────
+    //POST
     private void procesarRegistro(io.javalin.http.Context ctx) {
         String nombre   = ctx.formParam("nombre");
         String username = ctx.formParam("username");
         String email    = ctx.formParam("email");
         String password = ctx.formParam("password");
 
-        // Validar que el username no exista ya (con Morphia)
         Usuario existente = datastore.find(Usuario.class)
                 .filter(Filters.eq("username", username))
                 .first();
@@ -99,10 +94,8 @@ public class AuthControlador {
             return;
         }
 
-        // CORRECCIÓN DEL BUG: El orden correcto es (username, nombre, email, password, rol)
         Usuario nuevo = new Usuario(username, nombre, email, password, "ENCUESTADOR");
 
-        // Guardar con Morphia
         datastore.save(nuevo);
 
         ctx.redirect("/login?exito=Cuenta creada exitosamente. Inicia sesión.");

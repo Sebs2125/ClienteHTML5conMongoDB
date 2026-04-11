@@ -13,11 +13,6 @@ import java.util.stream.Collectors;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Sorts.descending;
 
-/**
- * AdminControlador
- * Maneja: dashboard, gestión de usuarios, todas las encuestas, exportar CSV
- * Solo accesible para roles ADMINISTRADOR y SUPERVISOR
- */
 public class AdminControlador
 {
     private final MongoCollection<Formulario> colFormularios;
@@ -41,7 +36,7 @@ public class AdminControlador
         app.get("/admin/exportar",   this::exportarCSV);
     }
 
-    // ── GET /admin/dashboard ───────────────────────────────────────────────
+    //GET
     private void dashboard(io.javalin.http.Context ctx)
     {
         if (!esAdmin(ctx)) return;
@@ -54,7 +49,7 @@ public class AdminControlador
         }
     }
 
-    // ── GET /admin/usuarios ────────────────────────────────────────────────
+    //GET
     private void gestionUsuarios(io.javalin.http.Context ctx)
     {
         if (!soloAdmin(ctx)) return;
@@ -72,7 +67,7 @@ public class AdminControlador
         }
     }
 
-    // ── GET /admin/encuestas ───────────────────────────────────────────────
+    //GET
     private void todasLasEncuestas(io.javalin.http.Context ctx)
     {
         if (!esAdmin(ctx)) return;
@@ -89,7 +84,7 @@ public class AdminControlador
         ctx.render("me_encuesta.html", model);
     }
 
-    // ── GET /admin/exportar ────────────────────────────────────────────────
+    //GET
     private void exportarCSV(io.javalin.http.Context ctx)
     {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("/login"); return; }
@@ -117,12 +112,7 @@ public class AdminControlador
         ctx.result(csv.toString());
     }
 
-    // ── Helpers privados ───────────────────────────────────────────────────
-
-    /**
-     * Construye el model compartido para Dashboard y Usuarios
-     * (stats, últimas encuestas, gráfico de niveles)
-     */
+    //Helpers privados
     private Map<String, Object> construirModeloDashboard() throws Exception
     {
         long totalEncuestas     = colFormularios.countDocuments();
@@ -160,7 +150,6 @@ public class AdminControlador
         return model;
     }
 
-    /** Enriquece los formularios con el objeto Usuario completo */
     private void enriquecer(List<Formulario> lista)
     {
         for (Formulario f : lista) {
@@ -172,7 +161,7 @@ public class AdminControlador
         }
     }
 
-    /** Verifica que el usuario en sesión sea ADMINISTRADOR o SUPERVISOR */
+    //Verifica que el usuario en sesión sea ADMINISTRADOR o SUPERVISOR
     private boolean esAdmin(io.javalin.http.Context ctx)
     {
         Usuario sesion = ctx.sessionAttribute("usuario");
@@ -185,7 +174,7 @@ public class AdminControlador
         return true;
     }
 
-    /** Verifica que el usuario en sesión sea SOLO ADMINISTRADOR */
+    //Verifica que el usuario en sesión sea solo un ADMINISTRADOR
     private boolean soloAdmin(io.javalin.http.Context ctx)
     {
         Usuario sesion = ctx.sessionAttribute("usuario");
@@ -197,7 +186,7 @@ public class AdminControlador
         return true;
     }
 
-    /** Escapa comas y comillas para exportación CSV */
+    //No deja formular comas y comillas
     private String escaparCSV(String valor)
     {
         if (valor == null) return "";

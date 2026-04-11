@@ -9,11 +9,6 @@ import io.javalin.Javalin;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * WebSocketControlador
- * Maneja el WebSocket de sincronización offline: ws://host/sincronizar
- * Recibe un JSON con lista de Formulario, los guarda en MongoDB y responde "OK"
- */
 public class WebSocketControlador
 {
     private final MongoCollection<Formulario> colFormularios;

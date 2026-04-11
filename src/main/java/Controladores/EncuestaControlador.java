@@ -17,7 +17,7 @@ public class EncuestaControlador {
     private final Datastore datastore;
     private final ObjectMapper mapper;
 
-    // Cambiamos MongoCollection por Datastore de Morphia
+    //Morphia (Requerimiento #5)
     public EncuestaControlador(Datastore datastore, ObjectMapper mapper) {
         this.datastore = datastore;
         this.mapper = mapper;
@@ -32,7 +32,7 @@ public class EncuestaControlador {
         app.get("/mapa",                         this::mostrarMapa);
     }
 
-    // ── GET /encuestas/nueva ───────────────────────────────────────────────
+    //GET
     private void mostrarFormulario(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
         Map<String, Object> model = new HashMap<>();
@@ -40,7 +40,7 @@ public class EncuestaControlador {
         ctx.render("encuesta_form.html", model);
     }
 
-    // ── POST /api/encuestas ────────────────────────────────────────────────
+    //POST
     private void guardarEncuesta(io.javalin.http.Context ctx) {
         try {
             Formulario f = mapper.readValue(ctx.body(), Formulario.class);
@@ -61,7 +61,7 @@ public class EncuestaControlador {
         }
     }
 
-    // ── GET /mis-encuestas ─────────────────────────────────────────────────
+    //GET
     private void misEncuestas(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
         Usuario sesion = ctx.sessionAttribute("usuario");
@@ -81,7 +81,7 @@ public class EncuestaControlador {
         ctx.render("me_encuesta.html", model);
     }
 
-    // ── GET /encuestas/{id} ────────────────────────────────────────────────
+    //GET
     private void detalleEncuesta(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
@@ -104,7 +104,7 @@ public class EncuestaControlador {
         }
     }
 
-    // ── POST /encuestas/{id}/eliminar ──────────────────────────────────────
+    //POST
     private void eliminarEncuesta(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
@@ -120,7 +120,7 @@ public class EncuestaControlador {
         }
     }
 
-    // ── GET /mapa ────────────────────────────────────��────────────────────
+    //GET
     private void mostrarMapa(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
 
@@ -156,7 +156,7 @@ public class EncuestaControlador {
         }
     }
 
-    // ── Helper: enriquece formularios con el objeto Usuario completo ───────
+    //Helper, es un objeto que ayuda a los formularios a buscar el usuario eficientemente
     private void enriquecer(List<Formulario> lista) {
         for (Formulario f : lista) {
             if (f.getUsuarioRegistro() != null) {

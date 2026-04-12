@@ -34,6 +34,7 @@ public class AdminControlador
         app.get("/admin/usuarios",   this::gestionUsuarios);
         app.get("/admin/encuestas",  this::todasLasEncuestas);
         app.get("/admin/exportar",   this::exportarCSV);
+        app.get("/supervisor/dashboard", this::dashboard);
     }
 
     //GET
@@ -56,7 +57,7 @@ public class AdminControlador
 
         try {
             List<Usuario> usuarios = colUsuarios.find().into(new ArrayList<>());
-            usuarios.forEach(u -> u.setPassword("")); // nunca exponer contraseñas
+            usuarios.forEach(u -> u.setPassword(""));
 
             Map<String, Object> model = construirModeloDashboard();
             model.put("usuarios", usuarios);

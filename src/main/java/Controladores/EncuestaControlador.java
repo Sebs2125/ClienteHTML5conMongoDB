@@ -30,6 +30,8 @@ public class EncuestaControlador {
         app.get("/encuestas/{id}",               this::detalleEncuesta);
         app.post("/encuestas/{id}/eliminar",     this::eliminarEncuesta);
         app.get("/mapa",                         this::mostrarMapa);
+        app.get("/encuestas/{id}/editar",         this::mostrarFormulario);
+        app.post("/encuestas/{id}/editar",         this::procesarEdicion);
     }
 
     //GET
@@ -43,21 +45,51 @@ public class EncuestaControlador {
     //POST
     private void guardarEncuesta(io.javalin.http.Context ctx) {
         try {
-            Formulario f = mapper.readValue(ctx.body(), Formulario.class);
 
-            if (f.getUsuarioRegistro() == null || f.getUsuarioRegistro().isBlank()) {
-                Usuario sesion = ctx.sessionAttribute("usuario");
-                if (sesion != null) f.setUsuarioRegistro(sesion.getUsername());
+            @SuppressWarnings("unchecked")
+            java.util.Map<String,Object> body =mapper.readValue(ctx.body(),java.util.Map.class);
+
+            Formulario f =new Formulario();
+            f.setNombre((String) body.get("nombre"));
+            f.setSector((String) body.get("sector"));
+            f.setNivelEscolar((String) body.get("nivelEscolar"));
+
+            String usuReg =(String) body.get("usuarioRegistro");
+            if (usuReg == null || usuReg.isBlank()) {
+                usuReg = (String) body.get("usuarioId");
             }
-            if (f.getFechaRegistro() == null) f.setFechaRegistro(LocalDateTime.now());
+            if (usuReg == null || usuReg.isBlank()) {
+                Usuario sesion = ctx.sessionAttribute("usuario");
+                if (sesion != null) usuReg = sesion.getUsername();
+            }
+            f.setUsuarioRegistro(usuReg);
 
-            // Uso de Morphia para guardar
+            Object lat = body.get("latitud");
+            Object lng = body.get("longitud");
+            if (lat != null && !lat.toString().isBlank()) {
+                f.setLatitud(Double.parseDouble(lat.toString()));
+            } else {
+                f.setLatitud(0.0);
+            }
+
+            if (lng != null && !lng.toString().isBlank()) {
+                f.setLongitud(Double.parseDouble(lng.toString()));
+            } else {
+                f.setLongitud(0.0);
+            }
+
+            f.setFotoBase64((String) body.get("fotoBase64"));
+
+            f.setFechaRegistro(java.time.LocalDateTime.now());
+
+
+
             datastore.save(f);
-
             ctx.status(201).json(Map.of("ok", true, "mensaje", "Encuesta guardada correctamente"));
 
         } catch (Exception e) {
-            ctx.status(400).json(Map.of("ok", false, "error", e.getMessage()));
+            System.err.println("Error guardarEncuesta "+ e.getMessage());
+            ctx.status(400).json(java.util.Map.of("ok", false, "error", e.getMessage()));
         }
     }
 
@@ -175,4 +207,57 @@ public class EncuestaControlador {
             }
         }
     }
+     private  void  mostrarFormularioEdicion (io.javalin.http.Context ctx)
+     {
+         if(ctx.sessionAttribute("usuario")==null)
+         {
+             ctx.redirect("/login");return;
+         }
+         try {
+             Formulario f = datastore.find(Formulario.class)
+                     .filter(Filters.eq("_id",new ObjectId(ctx.pathParam("id"))))
+                     .first();
+             if (f == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
+
+             Map<String, Object> model = new HashMap<>();
+             model.put("encuesta", f);
+             model.put("editando", true);
+             ctx.render("encuesta_editar.html", model);
+
+         } catch (Exception e) {
+                ctx.status(400).result("ID invalido");
+
+
+         }
+
+     }
+     private void procesarEdicion (io.javalin.http.Context ctx){
+         if(ctx.sessionAttribute("usuario")==null)
+         {
+             ctx.redirect("/login");return;
+         }
+
+         try {
+             ObjectId objectId = new ObjectId(ctx.pathParam("id"));
+             Formulario existing =datastore.find(Formulario.class)
+                     .filter(Filters.eq("_id",objectId))
+                     .first();
+             if (existing == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
+
+             existing.setNombre(ctx.formParam("nombre"));
+             existing.setSector(ctx.formParam("sector"));
+             existing.setNivelEscolar(ctx.formParam("nivelEscolar"));
+
+             datastore.save(existing);
+             ctx.redirect("/mis-encuestas?exito=Encuesta actualizada correctamente");
+         } catch (Exception e) {
+             ctx.redirect("/mis-encuestas?error=Error al actualizar: " + e.getMessage());
+         }
+
+
+
+
+     }
+
+
 }

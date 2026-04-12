@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Editar Encuesta', ~{::main})}">
+<head><title>Editar Encuesta</title></head>
+<body>
+<main>
+    <div class="section-header mb-4">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-1">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/mis-encuestas">Mis Encuestas</a></li>
+                    <li class="breadcrumb-item active">Editar</li>
+                </ol>
+            </nav>
+            <h2>Editar Encuesta</h2>
+            <p class="section-subtitle">Modifica los datos del registro</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header clay-header">
+                    <span style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:white;">
+                        <i class="bi bi-pencil-square me-2"></i>Datos del Encuestado
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <form th:action="@{'/encuestas/' + ${encuesta.id} + '/editar'}" method="post">
+
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" name="nombre" class="form-control"
+                                   required minlength="3" maxlength="150"
+                                   th:value="${encuesta.nombre}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sector</label>
+                            <input type="text" name="sector" class="form-control"
+                                   required maxlength="100"
+                                   th:value="${encuesta.sector}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nivel Escolar</label>
+                            <select name="nivelEscolar" class="form-select" required>
+                                <option value="BASICO"        th:selected="${encuesta.nivelEscolar == 'BASICO'}">Básico</option>
+                                <option value="MEDIO"         th:selected="${encuesta.nivelEscolar == 'MEDIO'}">Medio</option>
+                                <option value="UNIVERSITARIO" th:selected="${encuesta.nivelEscolar == 'UNIVERSITARIO'}">Grado Universitario</option>
+                                <option value="POSTGRADO"     th:selected="${encuesta.nivelEscolar == 'POSTGRADO'}">Postgrado</option>
+                                <option value="DOCTORADO"     th:selected="${encuesta.nivelEscolar == 'DOCTORADO'}">Doctorado</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-clay">
+                                <i class="bi bi-floppy me-1"></i>Guardar Cambios
+                            </button>
+                            <a th:href="@{'/encuestas/' + ${encuesta.id}}" class="btn btn-sand">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

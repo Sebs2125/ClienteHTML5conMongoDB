@@ -16,8 +16,8 @@ public class Formulario
     private String sector;
     private String nivelEscolar;
     private String usuarioRegistro;
-    private double latitud;
-    private double longitud;
+    private Double latitud;
+    private Double longitud;
     private String fotoBase64;
     private LocalDateTime fechaRegistro;
 
@@ -41,10 +41,10 @@ public class Formulario
     public String getUsuarioRegistro() { return usuarioRegistro; }
     public void setUsuarioRegistro(String usuarioRegistro) { this.usuarioRegistro = usuarioRegistro; }
 
-    public double getLatitud() { return latitud; }
+    public Double getLatitud() { return latitud; }
     public void setLatitud(double latitud) { this.latitud = latitud; }
 
-    public double getLongitud() { return longitud; }
+    public Double getLongitud() { return longitud; }
     public void setLongitud(double longitud) { this.longitud = longitud; }
 
     public String getFotoBase64() { return fotoBase64; }

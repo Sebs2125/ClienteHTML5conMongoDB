@@ -41,7 +41,7 @@
                         <input type="hidden" id="field-lat" name="latitud">
                         <input type="hidden" id="field-lng" name="longitud">
                         <input type="hidden" id="field-foto" name="fotoBase64">
-                        <input type="hidden" id="field-usuario" name="usuarioId"
+                        <input type="hidden" id="field-usuario" name="usuarioRegistro"
                                th:value="${session.usuario != null ? session.usuario.id.toString() : ''}"                        >
 
                         <div class="row g-3">
@@ -302,9 +302,10 @@
                     var msgs = { 1: 'Permiso de ubicación denegado.', 2: 'Ubicación no disponible.', 3: 'Tiempo agotado.' };
                     mostrarGeoError(msgs[err.code] || 'Error desconocido.');
                     btn.disabled = false;
+                    btn.setAttribute('onclick','obtenerUbicacion()');
                     btn.innerHTML = '<i class="bi bi-crosshair2 me-1"></i>Reintentar';
                 },
-                { enableHighAccuracy: true, timeout: 12000 }
+                {enableHighAccuracy: false, maximumAge: 60000, timeout: 15000}
             );
         }
 
@@ -399,7 +400,7 @@
                 latitud:     document.getElementById('field-lat').value || null,
                 longitud:    document.getElementById('field-lng').value || null,
                 fotoBase64:  document.getElementById('field-foto').value || null,
-                usuarioId:   document.getElementById('field-usuario').value,
+                usuarioRegistro:   document.getElementById('field-usuario').value,
                 fechaRegistro: new Date().toISOString(),
                 sincronizado: false
             };

@@ -24,17 +24,17 @@ public class WebSocketControlador
     public void registrarRutas(Javalin app)
     {
         app.ws("/sincronizar", ws -> {
-            ws.onConnect(ctx -> System.out.println("📡 WS conectado: " + ctx.sessionId()));
+            ws.onConnect(ctx -> System.out.println(" WS conectado: " + ctx.sessionId()));
             ws.onMessage(ctx -> sincronizar(ctx));
-            ws.onClose(ctx   -> System.out.println("📡 WS cerrado: "   + ctx.sessionId()));
-            ws.onError(ctx   -> System.err.println("❌ WS error: "      + ctx.error()));
+            ws.onClose(ctx   -> System.out.println(" WS cerrado: "   + ctx.sessionId()));
+            ws.onError(ctx   -> System.err.println(" WS error: "      + ctx.error()));
         });
     }
 
     private void sincronizar(io.javalin.websocket.WsMessageContext ctx)
     {
         String jsonRecibido = ctx.message();
-        System.out.println("📥 WS datos recibidos (" + jsonRecibido.length() + " bytes)");
+        System.out.println(" WS datos recibidos (" + jsonRecibido.length() + " bytes)");
 
         try {
             List<Formulario> encuestas = mapper.readValue(
@@ -53,11 +53,11 @@ public class WebSocketControlador
             });
 
             colFormularios.insertMany(encuestas);
-            System.out.println("✅ " + encuestas.size() + " encuesta(s) guardadas via WS");
+            System.out.println(" B" + encuestas.size() + " encuesta(s) guardadas via WS");
             ctx.send("OK");
 
         } catch (Exception e) {
-            System.err.println("❌ Error WS sincronización: " + e.getMessage());
+            System.err.println(" Error WS sincronización: " + e.getMessage());
             ctx.send("ERROR");
         }
     }

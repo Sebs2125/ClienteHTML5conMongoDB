@@ -58,6 +58,15 @@
                         <th>Usuario</th>
                         <th>Email</th>
                         <th>Rol</th>
+                        <th>Estado</th>
+                    </tr>
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -65,8 +74,8 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--terra-400),var(--clay-500));
-                                         border-radius:50%;display:flex;align-items:center;justify-content:center;
-                                         color:white;font-size:.75rem;font-weight:700;flex-shrink:0;"
+                     border-radius:50%;display:flex;align-items:center;justify-content:center;
+                     color:white;font-size:.75rem;font-weight:700;flex-shrink:0;"
                                      th:text="${#strings.substring(u.nombre, 0, 1)}">U</div>
                                 <span th:text="${u.nombre}">—</span>
                             </div>
@@ -74,13 +83,36 @@
                         <td><code th:text="${u.username}">—</code></td>
                         <td><small th:text="${u.email}">—</small></td>
                         <td>
-                            <span class="badge badge-clay" th:text="${u.rol}">—</span>
+                            <form method="post"
+                                  th:attr="action='/admin/usuarios/' + ${u.id} + '/cambiar-rol'"
+                                  class="d-flex align-items-center gap-1">
+                                <select name="rol" class="form-select form-select-sm" style="width:auto;">
+                                    <option value="ENCUESTADOR"   th:selected="${u.rol == 'ENCUESTADOR'}">Encuestador</option>
+                                    <option value="SUPERVISOR"    th:selected="${u.rol == 'SUPERVISOR'}">Supervisor</option>
+                                    <option value="ADMINISTRADOR" th:selected="${u.rol == 'ADMINISTRADOR'}">Administrador</option>
+                                </select>
+                                <button type="submit" class="btn btn-sand btn-sm">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post"
+                                  th:attr="action='/admin/usuarios/' + ${u.id} + '/toggle-activo'"
+                                  class="d-inline">
+                                <button type="submit"
+                                        th:classappend="${u.activo} ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-secondary'"
+                                        th:text="${u.activo} ? 'Activo' : 'Inactivo'">
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(usuarios)}">
-                        <td colspan="4" class="text-center py-4 text-muted">No hay usuarios registrados</td>
+                        <td colspan="5" class="text-center py-4 text-muted">No hay usuarios registrados</td>
                     </tr>
                     </tbody>
+
+
                 </table>
             </div>
         </div>

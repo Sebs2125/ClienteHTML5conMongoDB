@@ -397,7 +397,35 @@
         document.getElementById('form-encuesta').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
-            guardarLocalmente();
+
+            var idEdicion = document.getElementById('field-id')?.value;
+            if (idEdicion)
+            {
+
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/encuestas/' + idEdicion + '/editar';
+
+                var campos = {
+                    nombre:          document.getElementById('field-nombre').value,
+                    sector:          document.getElementById('field-sector').value,
+                    nivelEscolar:    document.getElementById('field-nivel').value,
+                    fotoBase64:      document.getElementById('field-foto').value || ''
+                };
+
+                Object.keys(campos).forEach(function(nombre) {
+                    var input = document.createElement('input');
+                    input.type  = 'hidden';
+                    input.name  = nombre;
+                    input.value = campos[nombre];
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                guardarLocalmente();
+            }
         });
 
         function guardarLocalmente() {
@@ -437,7 +465,15 @@
             setTimeout(() => div.remove(), 5000);
         }
 
+
         function enviarAlServidor() {
+            var idEdicion = document.getElementById('field-id')?.value;
+            if (idEdicion) {
+                document.getElementById('form-encuesta').dispatchEvent(
+                    new Event('submit', {bubbles: true, cancelable: true})
+                );
+                return;
+            }
             if (!navigator.onLine) {
                 alert('Sin conexion. El registro se guardará localmente.');
                 guardarLocalmente();
@@ -445,8 +481,11 @@
             }
             document.getElementById('form-encuesta').requestSubmit
                 ? document.getElementById('form-encuesta').requestSubmit()
-                : document.getElementById('form-encuesta').dispatchEvent(new Event('submit', {bubbles:true, cancelable:true}));
+                : document.getElementById('form-encuesta').dispatchEvent(
+                    new Event('submit', {bubbles:true, cancelable:true})
+                );
         }
+
 
         async function sincronizarAhora() {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');

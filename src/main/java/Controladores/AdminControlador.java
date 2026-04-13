@@ -30,16 +30,15 @@ public class AdminControlador
 
     public void registrarRutas(Javalin app)
     {
-        app.get("/admin/dashboard",                       this::dashboard);
-        app.get("/admin/usuarios",                        this::gestionUsuarios);
-        app.get("/admin/encuestas",                       this::todasLasEncuestas);
-        app.get("/admin/exportar",                        this::exportarCSV);
-        app.post("/admin/usuarios/{id}/toggle-activo",    this::toggleActivo);
-        app.post("/admin/usuarios/{id}/cambiar-rol",      this::cambiarRol);
-        app.get("/supervisor/dashboard",                  this::dashboardSupervisor);
-        app.get("/supervisor/encuestas",                  this::todasLasEncuestas);
+        app.get("/admin/dashboard",                    this::dashboard);
+        app.get("/admin/usuarios",                     this::gestionUsuarios);
+        app.get("/admin/encuestas",                    this::todasLasEncuestas);
+        app.get("/admin/exportar",                     this::exportarCSV);
+        app.post("/admin/usuarios/{id}/toggle-activo", this::toggleActivo);
+        app.post("/admin/usuarios/{id}/cambiar-rol",   this::cambiarRol);
+        app.get("/supervisor/dashboard",               this::dashboardSupervisor);
+        app.get("/supervisor/encuestas",               this::todasLasEncuestas);
     }
-
     //GET
     private void dashboard(io.javalin.http.Context ctx)
     {
@@ -62,8 +61,11 @@ public class AdminControlador
             List<Usuario> usuarios = colUsuarios.find().into(new ArrayList<>());
             usuarios.forEach(u -> u.setPassword(""));
 
-            Map<String, Object> model = construirModeloDashboard();
+            Map<String, Object> model = new HashMap<>();
             model.put("usuarios", usuarios);
+            model.put("totalUsuarios", colUsuarios.countDocuments());
+            model.put("totalEncuestadores", colUsuarios.find(eq("rol", "ENCUESTADOR"))
+                    .into(new ArrayList<>()).size());
             ctx.render("usuarios.html", model);
 
         } catch (Exception e) {
@@ -138,7 +140,6 @@ public class AdminControlador
                 .into(new ArrayList<>());
         enriquecer(ultimas);
 
-        // Estadísticas por nivel para el gráfico de dona
         Map<String, Long> nivelStats = new LinkedHashMap<>();
         for (String nivel : List.of("BASICO", "MEDIO", "UNIVERSITARIO", "POSTGRADO", "DOCTORADO")) {
             nivelStats.put(nivel, colFormularios.countDocuments(eq("nivelEscolar", nivel)));
@@ -151,6 +152,8 @@ public class AdminControlador
         model.put("totalEncuestadores",  totalEncuestadores);
         model.put("ultimasEncuestas",    ultimas);
         model.put("nivelStats",          mapper.writeValueAsString(nivelStats));
+        model.put("totalUsuarios",      colUsuarios.countDocuments());
+        model.put("totalEncuestadores", colUsuarios.find(eq("rol","ENCUESTADOR")).into(new ArrayList<>()).size());
         return model;
     }
 

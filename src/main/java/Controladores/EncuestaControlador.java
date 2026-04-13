@@ -24,15 +24,15 @@ public class EncuestaControlador {
     }
 
     public void registrarRutas(Javalin app) {
-        app.get("/encuestas/nueva",              this::mostrarFormulario);
-        app.post("/api/encuestas",               this::guardarEncuesta);
-        app.get("/mis-encuestas",                this::misEncuestas);
-        app.get("/encuestas/{id}",               this::detalleEncuesta);
-        app.get("/encuestas/{id}/editar",        this::mostrarEdicion);
-        app.post("/encuestas/{id}/eliminar",     this::eliminarEncuesta);
-        app.get("/mapa",                         this::mostrarMapa);
+        app.get("/encuestas/nueva",          this::mostrarFormulario);
+        app.post("/api/encuestas",           this::guardarEncuesta);
+        app.get("/mis-encuestas",            this::misEncuestas);
+        app.get("/encuestas/{id}",           this::detalleEncuesta);
+        app.get("/encuestas/{id}/editar",    this::mostrarEdicion);
+        app.post("/encuestas/{id}/editar",   this::procesarEdicion);
+        app.post("/encuestas/{id}/eliminar", this::eliminarEncuesta);
+        app.get("/mapa",                     this::mostrarMapa);
     }
-
     //GET
     private void mostrarFormulario(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) {
@@ -277,6 +277,11 @@ public class EncuestaControlador {
             existing.setNombre(ctx.formParam("nombre"));
             existing.setSector(ctx.formParam("sector"));
             existing.setNivelEscolar(ctx.formParam("nivelEscolar"));
+
+            String nuevaFoto = ctx.formParam("fotoBase64");
+            if (nuevaFoto != null && !nuevaFoto.isBlank()) {
+                existing.setFotoBase64(nuevaFoto);
+            }
 
             datastore.save(existing);
             ctx.redirect("/mis-encuestas?exito=Encuesta actualizada correctamente");

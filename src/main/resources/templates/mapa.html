@@ -7,11 +7,11 @@
     <div class="page-header mb-5">
         <div class="page-header-content">
             <div>
-                <h1 class="page-title">📍 Mapa de Registros</h1>
+                <h1 class="page-title">  Mapa de Registros</h1>
                 <p class="page-subtitle">Visualiza la distribución geográfica de todas las encuestas realizadas</p>
-            </div>
+            </div>c
             <div class="header-actions">
-                <button class="btn btn-primary btn-sm" onclick="exportarDatos()"><i class="bi bi-download me-1"></i>Exportar</button>
+
                 <button class="btn btn-outline-primary btn-sm" onclick="refrescarDatos()"><i class="bi bi-arrow-clockwise me-1"></i>Actualizar</button>
             </div>
         </div>
@@ -98,7 +98,7 @@
                 var lng = parseFloat(enc.longitud);
                 var color = colores[enc.nivelEscolar] || '#6b7280';
                 var marker = L.circleMarker([lat, lng], {radius: 8, color: color, fillColor: color, fillOpacity: 0.8, weight: 2}).addTo(mapa);
-                marker.bindPopup('<div style="min-width:180px;"><strong>' + enc.nombre + '</strong><br>📍 ' + enc.sector + '<br>🎓 ' + enc.nivelEscolar + '</div>');
+                marker.bindPopup('<div style="min-width:180px;"><strong>' + enc.nombre + '</strong><br> ' + enc.sector + '<br>🎓 ' + enc.nivelEscolar + '</div>');
                 markers.push(marker);
                 bounds.push([lat, lng]);
             });

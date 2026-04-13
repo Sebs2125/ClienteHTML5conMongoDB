@@ -1,11 +1,10 @@
-
 self.onmessage = function(e) {
     if (e.data.type === 'SYNC') {
-        const datosJSON = e.data.payload;
+        var datosJSON = e.data.payload;
 
-        const host = self.location.host || 'localhost:7000';
-        const protocol = self.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(protocol + '//' + host + '/sincronizar');
+        var host     = self.location.host || 'localhost:7000';
+        var protocol = self.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var ws       = new WebSocket(protocol + '//' + host + '/sincronizar');
 
         ws.onopen = function() {
             ws.send(datosJSON);
@@ -15,12 +14,23 @@ self.onmessage = function(e) {
             if (event.data === 'OK') {
                 self.postMessage({ status: 'SUCCESS' });
                 ws.close();
+            } else if (event.data === 'VACIO') {
+                self.postMessage({ status: 'EMPTY' });
+                ws.close();
+            } else {
+                self.postMessage({ status: 'ERROR', detalle: event.data });
+                ws.close();
             }
         };
 
-        ws.onerror = function(error) {
-            console.error('Error en WebSocket:', error);
-            self.postMessage({ status: 'ERROR' });
+        ws.onerror = function() {
+            self.postMessage({ status: 'ERROR', detalle: 'No se pudo conectar al servidor.' });
+        };
+
+        ws.onclose = function(ev) {
+            if (ev.code !== 1000 && ev.code !== 1005) {
+                self.postMessage({ status: 'ERROR', detalle: 'Conexión cerrada inesperadamente.' });
+            }
         };
     }
 };

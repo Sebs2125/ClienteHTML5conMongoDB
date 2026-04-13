@@ -5,10 +5,12 @@
 <body>
 <main>
 
+    <meta charset="UTF-8">
+
     <div class="section-header mb-4">
         <div>
-            <h2>Panel de Administración</h2>
-            <p class="section-subtitle">Visión general del sistema de encuestas</p>
+            <h2>Panel de Administracion</h2>
+            <p class="section-subtitle">Vision general del sistema de encuestas</p>
         </div>
         <div class="d-flex gap-2">
             <a href="/admin/usuarios" class="btn btn-sand btn-sm">
@@ -102,13 +104,18 @@
                                 <td><strong style="font-size:.875rem;" th:text="${enc.nombre}">—</strong></td>
                                 <td><small th:text="${enc.sector}">—</small></td>
                                 <td>
-                                    <div class="d-flex align-items-center gap-2">
+                                    <!-- FIX: verificar que enc.usuario no sea null antes de acceder a nombre -->
+                                    <div class="d-flex align-items-center gap-2" th:if="${enc.usuario != null}">
                                         <div style="width:26px;height:26px;background:linear-gradient(135deg,var(--terra-400),var(--clay-500));
                                   border-radius:50%;display:flex;align-items:center;justify-content:center;
                                   color:white;font-size:.7rem;font-weight:700;flex-shrink:0;"
                                              th:text="${#strings.substring(enc.usuario.nombre, 0, 1)}">U</div>
                                         <small th:text="${enc.usuario.nombre}">—</small>
                                     </div>
+                                    <!-- Fallback cuando el usuario no existe en BD -->
+                                    <small th:unless="${enc.usuario != null}"
+                                           style="color:var(--ink-muted);"
+                                           th:text="${enc.usuarioRegistro != null ? enc.usuarioRegistro : '—'}">—</small>
                                 </td>
                                 <td><span class="badge badge-clay" th:text="${enc.nivelEscolar}">—</span></td>
                                 <td><small class="text-muted" th:text="${#temporals.format(enc.fechaRegistro, 'dd/MM HH:mm')}">—</small></td>

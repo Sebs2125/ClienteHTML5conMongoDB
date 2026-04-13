@@ -28,15 +28,17 @@ public class EncuestaControlador {
         app.post("/api/encuestas",               this::guardarEncuesta);
         app.get("/mis-encuestas",                this::misEncuestas);
         app.get("/encuestas/{id}",               this::detalleEncuesta);
+        app.get("/encuestas/{id}/editar",        this::mostrarEdicion);
         app.post("/encuestas/{id}/eliminar",     this::eliminarEncuesta);
         app.get("/mapa",                         this::mostrarMapa);
-        app.get("/encuestas/{id}/editar",         this::mostrarFormulario);
-        app.post("/encuestas/{id}/editar",         this::procesarEdicion);
     }
 
     //GET
     private void mostrarFormulario(io.javalin.http.Context ctx) {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("login");
+            return;
+        }
         Map<String, Object> model = new HashMap<>();
         model.put("usuario", ctx.sessionAttribute("usuario"));
         ctx.render("encuesta_form.html", model);
@@ -47,14 +49,14 @@ public class EncuestaControlador {
         try {
 
             @SuppressWarnings("unchecked")
-            java.util.Map<String,Object> body =mapper.readValue(ctx.body(),java.util.Map.class);
+            java.util.Map<String, Object> body = mapper.readValue(ctx.body(), java.util.Map.class);
 
-            Formulario f =new Formulario();
+            Formulario f = new Formulario();
             f.setNombre((String) body.get("nombre"));
             f.setSector((String) body.get("sector"));
             f.setNivelEscolar((String) body.get("nivelEscolar"));
 
-            String usuReg =(String) body.get("usuarioRegistro");
+            String usuReg = (String) body.get("usuarioRegistro");
             if (usuReg == null || usuReg.isBlank()) {
                 usuReg = (String) body.get("usuarioId");
             }
@@ -83,19 +85,21 @@ public class EncuestaControlador {
             f.setFechaRegistro(java.time.LocalDateTime.now());
 
 
-
             datastore.save(f);
             ctx.status(201).json(Map.of("ok", true, "mensaje", "Encuesta guardada correctamente"));
 
         } catch (Exception e) {
-            System.err.println("Error guardarEncuesta "+ e.getMessage());
+            System.err.println("Error guardarEncuesta " + e.getMessage());
             ctx.status(400).json(java.util.Map.of("ok", false, "error", e.getMessage()));
         }
     }
 
     //GET
     private void misEncuestas(io.javalin.http.Context ctx) {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("login");
+            return;
+        }
         Usuario sesion = ctx.sessionAttribute("usuario");
 
         // Búsqueda con Morphia
@@ -115,7 +119,10 @@ public class EncuestaControlador {
 
     //GET
     private void detalleEncuesta(io.javalin.http.Context ctx) {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("login");
+            return;
+        }
 
         try {
             // Búsqueda por ID en Morphia
@@ -123,7 +130,10 @@ public class EncuestaControlador {
                     .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
                     .first();
 
-            if (f == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
+            if (f == null) {
+                ctx.status(404).result("Encuesta no encontrada");
+                return;
+            }
 
             enriquecer(List.of(f));
 
@@ -138,7 +148,17 @@ public class EncuestaControlador {
 
     //POST
     private void eliminarEncuesta(io.javalin.http.Context ctx) {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+
+        String rol = "";
+        Usuario sesion = ctx.sessionAttribute("usuario");
+        if (sesion != null) rol = sesion.getRol();
+
+        if ("ADMINISTRADOR".equals(rol) || "SUPERVISOR".equals(rol)) {
+            ctx.redirect("/admin/encuestas?exito=Encuesta eliminada correctamente");
+        } else {
+            ctx.redirect("/mis-encuestas?exito=Encuesta eliminada correctamente");
+        }
+
 
         try {
             // Eliminar con Morphia
@@ -154,7 +174,10 @@ public class EncuestaControlador {
 
     //GET
     private void mostrarMapa(io.javalin.http.Context ctx) {
-        if (ctx.sessionAttribute("usuario") == null) { ctx.redirect("login"); return; }
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("login");
+            return;
+        }
 
         // Búsqueda de todas las encuestas con Morphia
         List<Formulario> todas = datastore.find(Formulario.class)
@@ -166,13 +189,13 @@ public class EncuestaControlador {
         try {
             List<Map<String, Object>> encuestasSimples = todas.stream().map(f -> {
                 Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",            f.getId() != null ? f.getId().toString() : "");
-                m.put("nombre",        f.getNombre());
-                m.put("sector",        f.getSector());
-                m.put("nivelEscolar",  f.getNivelEscolar());
-                m.put("latitud",       f.getLatitud());
-                m.put("longitud",      f.getLongitud());
-                m.put("fotoBase64",    f.getFotoBase64());
+                m.put("id", f.getId() != null ? f.getId().toString() : "");
+                m.put("nombre", f.getNombre());
+                m.put("sector", f.getSector());
+                m.put("nivelEscolar", f.getNivelEscolar());
+                m.put("latitud", f.getLatitud());
+                m.put("longitud", f.getLongitud());
+                m.put("fotoBase64", f.getFotoBase64());
                 m.put("fechaRegistro", f.getFechaRegistro() != null ? f.getFechaRegistro().toString() : "");
                 return m;
             }).collect(Collectors.toList());
@@ -207,57 +230,93 @@ public class EncuestaControlador {
             }
         }
     }
-     private  void  mostrarFormularioEdicion (io.javalin.http.Context ctx)
-     {
-         if(ctx.sessionAttribute("usuario")==null)
-         {
-             ctx.redirect("/login");return;
-         }
-         try {
-             Formulario f = datastore.find(Formulario.class)
-                     .filter(Filters.eq("_id",new ObjectId(ctx.pathParam("id"))))
-                     .first();
-             if (f == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
 
-             Map<String, Object> model = new HashMap<>();
-             model.put("encuesta", f);
-             model.put("editando", true);
-             ctx.render("encuesta_editar.html", model);
+    private void mostrarFormularioEdicion(io.javalin.http.Context ctx) {
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("/login");
+            return;
+        }
+        try {
+            Formulario f = datastore.find(Formulario.class)
+                    .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
+                    .first();
+            if (f == null) {
+                ctx.status(404).result("Encuesta no encontrada");
+                return;
+            }
 
-         } catch (Exception e) {
-                ctx.status(400).result("ID invalido");
+            Map<String, Object> model = new HashMap<>();
+            model.put("encuesta", f);
+            model.put("editando", true);
+            ctx.render("encuesta_editar.html", model);
 
-
-         }
-
-     }
-     private void procesarEdicion (io.javalin.http.Context ctx){
-         if(ctx.sessionAttribute("usuario")==null)
-         {
-             ctx.redirect("/login");return;
-         }
-
-         try {
-             ObjectId objectId = new ObjectId(ctx.pathParam("id"));
-             Formulario existing =datastore.find(Formulario.class)
-                     .filter(Filters.eq("_id",objectId))
-                     .first();
-             if (existing == null) { ctx.status(404).result("Encuesta no encontrada"); return; }
-
-             existing.setNombre(ctx.formParam("nombre"));
-             existing.setSector(ctx.formParam("sector"));
-             existing.setNivelEscolar(ctx.formParam("nivelEscolar"));
-
-             datastore.save(existing);
-             ctx.redirect("/mis-encuestas?exito=Encuesta actualizada correctamente");
-         } catch (Exception e) {
-             ctx.redirect("/mis-encuestas?error=Error al actualizar: " + e.getMessage());
-         }
+        } catch (Exception e) {
+            ctx.status(400).result("ID invalido");
 
 
+        }
+
+    }
+
+    private void procesarEdicion(io.javalin.http.Context ctx) {
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("/login");
+            return;
+        }
+
+        try {
+            ObjectId objectId = new ObjectId(ctx.pathParam("id"));
+            Formulario existing = datastore.find(Formulario.class)
+                    .filter(Filters.eq("_id", objectId))
+                    .first();
+            if (existing == null) {
+                ctx.status(404).result("Encuesta no encontrada");
+                return;
+            }
+
+            existing.setNombre(ctx.formParam("nombre"));
+            existing.setSector(ctx.formParam("sector"));
+            existing.setNivelEscolar(ctx.formParam("nivelEscolar"));
+
+            datastore.save(existing);
+            ctx.redirect("/mis-encuestas?exito=Encuesta actualizada correctamente");
+        } catch (Exception e) {
+            ctx.redirect("/mis-encuestas?error=Error al actualizar: " + e.getMessage());
+        }
 
 
-     }
+    }
 
+    private void mostrarEdicion(io.javalin.http.Context ctx) {
 
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("/login");
+            return;
+        }
+        try {
+            Formulario f = datastore.find(Formulario.class)
+                    .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
+                    .first();
+            if (f == null) {
+                ctx.status(404).result("Encuesta no encontrada");
+                return;
+            }
+
+            Map<String, Object> model = new HashMap<>();
+            model.put("encuesta", f);
+            model.put("editando", true);
+            ctx.render("encuesta_form.html", model);
+        } catch (Exception e) {
+            ctx.redirect("/mis-encuestas?error=Error al cargar la encuesta");
+        }
+    }
 }
+
+
+
+
+
+
+
+
+

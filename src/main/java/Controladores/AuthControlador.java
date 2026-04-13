@@ -23,6 +23,7 @@ public class AuthControlador {
         app.get("/logout",   this::logout);
         app.get("/registro", this::mostrarRegistro);
         app.post("/registro",this::procesarRegistro);
+        app.get("/perfil",   this::mostrarPerfil);
     }
 
     //GET
@@ -54,8 +55,10 @@ public class AuthControlador {
 
             switch (userDb.getRol()) {
                 case "ADMINISTRADOR":
+                    ctx.redirect("/admin/dashboard");
+                    break;
                 case "SUPERVISOR":
-                    ctx.redirect("/mapa"); // Redirigir al mapa (o dashboard si lo tienes)
+                    ctx.redirect("/supervisor/dashboard");
                     break;
                 default:
                     ctx.redirect("/encuestas/nueva");
@@ -100,4 +103,17 @@ public class AuthControlador {
 
         ctx.redirect("/login?exito=Cuenta creada exitosamente. Inicia sesión.");
     }
+
+    private void mostrarPerfil(io.javalin.http.Context ctx) {
+        if (ctx.sessionAttribute("usuario") == null) {
+            ctx.redirect("/login");
+            return;
+        }
+        Map<String, Object> model = new HashMap<>();
+        model.put("error",  ctx.queryParam("error"));
+        model.put("exito",  ctx.queryParam("exito"));
+
+        ctx.render("perfil.html", model);
+    }
+
 }

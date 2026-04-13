@@ -30,11 +30,14 @@ public class AdminControlador
 
     public void registrarRutas(Javalin app)
     {
-        app.get("/admin/dashboard",  this::dashboard);
-        app.get("/admin/usuarios",   this::gestionUsuarios);
-        app.get("/admin/encuestas",  this::todasLasEncuestas);
-        app.get("/admin/exportar",   this::exportarCSV);
-        app.get("/supervisor/dashboard", this::dashboard);
+        app.get("/admin/dashboard",                       this::dashboard);
+        app.get("/admin/usuarios",                        this::gestionUsuarios);
+        app.get("/admin/encuestas",                       this::todasLasEncuestas);
+        app.get("/admin/exportar",                        this::exportarCSV);
+        app.post("/admin/usuarios/{id}/toggle-activo",    this::toggleActivo);
+        app.post("/admin/usuarios/{id}/cambiar-rol",      this::cambiarRol);
+        app.get("/supervisor/dashboard",                  this::dashboardSupervisor);
+        app.get("/supervisor/encuestas",                  this::todasLasEncuestas);
     }
 
     //GET
@@ -181,7 +184,8 @@ public class AdminControlador
         Usuario sesion = ctx.sessionAttribute("usuario");
         if (sesion == null) { ctx.redirect("/login"); return false; }
         if (!"ADMINISTRADOR".equals(sesion.getRol())) {
-            ctx.redirect("/encuestas/nueva");
+            ctx.redirect("/supervisor/dashboard?error=No tienes acceso a la gestión de usuarios");
+
             return false;
         }
         return true;
@@ -193,4 +197,60 @@ public class AdminControlador
         if (valor == null) return "";
         return "\"" + valor.replace("\"", "\"\"") + "\"";
     }
+
+    private void toggleActivo(io.javalin.http.Context ctx)
+    {
+        if(!soloAdmin(ctx))return;
+        try{
+            org.bson.types.ObjectId oid = new org.bson.types.ObjectId(ctx.pathParam("id"));
+            Usuario u = colUsuarios.find(eq("_id", oid)).first();
+            if (u != null) {
+                u.setActivo(!u.isActivo());
+                colUsuarios.replaceOne(eq("_id", oid), u);
+            }
+            ctx.redirect("/admin/usuarios?exito=Estado del usuario actualizado");
+
+
+        } catch (Exception e) {
+            ctx.redirect("/admin/usuarios?error=Error al actualizar: " + e.getMessage());
+        }
+
+    }
+    private void cambiarRol(io.javalin.http.Context ctx){
+        if (!soloAdmin(ctx)) return;
+        try {
+            org.bson.types.ObjectId oid = new org.bson.types.ObjectId(ctx.pathParam("id"));
+            String nuevoRol = ctx.formParam("rol");
+            if (nuevoRol == null || nuevoRol.isBlank()) {
+                ctx.redirect("/admin/usuarios?error=Rol invalido");
+                return;
+            }
+            Usuario u = colUsuarios.find(eq("_id", oid)).first();
+            if (u != null) {
+                u.setRol(nuevoRol);
+                colUsuarios.replaceOne(eq("_id", oid), u);
+            }
+            ctx.redirect("/admin/usuarios?exito=Rol actualizado correctamente");
+        } catch (Exception e) {
+            ctx.redirect("/admin/usuarios?error=Error al cambiar rol: " + e.getMessage());
+        }
+
+    }
+    private void dashboardSupervisor(io.javalin.http.Context ctx)
+    {
+        Usuario sesion = ctx.sessionAttribute("usuario");
+        if (sesion == null) { ctx.redirect("/login"); return; }
+        if (!"SUPERVISOR".equals(sesion.getRol()) && !"ADMINISTRADOR".equals(sesion.getRol())) {
+            ctx.redirect("/encuestas/nueva");
+            return;
+        }
+
+        try {
+            Map<String, Object> model = construirModeloDashboard();
+            ctx.render("dashboard.html", model);
+        } catch (Exception e) {
+            ctx.status(500).result("Error al cargar el dashboard: " + e.getMessage());
+        }
+    }
+
 }

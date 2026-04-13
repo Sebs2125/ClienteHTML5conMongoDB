@@ -261,7 +261,7 @@ public class ClienteRESTJava extends JFrame
 
     // ── Lógica REST ──────────────────────────────────────────────────────────
 
-  
+
     private void autenticar()
     {
         try {

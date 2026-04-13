@@ -48,8 +48,9 @@ public class AuthControlador {
                 .filter(Filters.eq("username", username))
                 .first();
 
-        if (userDb != null && userDb.getPassword().equals(password)) {
-            userDb.setPassword(""); // No guardar la contraseña en la sesión web
+        if (userDb != null && userDb.getPassword().equals(password) && userDb.isActivo()){
+
+            userDb.setPassword("");
             ctx.sessionAttribute("usuario", userDb);
             ctx.sessionAttribute("rol",     userDb.getRol());
 

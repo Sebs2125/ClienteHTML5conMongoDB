@@ -8,14 +8,13 @@
     <div class="section-header mb-4">
         <div>
             <h2>Mis Encuestas</h2>
-            <p class="section-subtitle">Registros enviados y pendientes de sincronización</p>
+            <p class="section-subtitle">Registros enviados y pendientes de sincronizacion</p>
         </div>
         <a href="/encuestas/nueva" class="btn btn-clay">
             <i class="bi bi-plus-circle me-1"></i>Nueva Encuesta
         </a>
     </div>
 
-    <!-- Alertas del servidor -->
     <div th:if="${exito}" class="alert alert-success mb-3">
         <i class="bi bi-check-circle me-2"></i><span th:text="${exito}"></span>
     </div>
@@ -23,7 +22,6 @@
         <i class="bi bi-exclamation-circle me-2"></i><span th:text="${error}"></span>
     </div>
 
-    <!-- Tabs: Servidor | Local -->
     <ul class="nav nav-tabs-clay nav-tabs mb-4" id="tabEncuestas">
         <li class="nav-item">
             <a class="nav-link active" data-bs-toggle="tab" href="#tab-servidor">
@@ -44,7 +42,6 @@
 
         <!-- TAB SERVIDOR -->
         <div class="tab-pane fade show active" id="tab-servidor">
-
             <div class="card" th:if="${not #lists.isEmpty(encuestas)}">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -62,26 +59,23 @@
                             </thead>
                             <tbody>
                             <tr th:each="enc : ${encuestas}">
+                                <td><span class="fw-bold" th:text="${enc.nombre}">—</span></td>
                                 <td>
-                                    <span class="fw-bold" th:text="${enc.nombre}">—</span>
+                                    <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;">
+                                        <i class="bi bi-geo-alt" style="color:var(--terra-400);"></i>
+                                        <span th:text="${enc.sector}">—</span>
+                                    </span>
                                 </td>
+                                <td><span class="badge badge-clay" th:text="${enc.nivelEscolar}">—</span></td>
                                 <td>
-                    <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;">
-                      <i class="bi bi-geo-alt" style="color:var(--terra-400);"></i>
-                      <span th:text="${enc.sector}">—</span>
-                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-clay" th:text="${enc.nivelEscolar}">—</span>
-                                </td>
-                                <td>
-                    <span th:if="${enc.latitud != null}"
-                          style="font-family:var(--font-mono);font-size:.75rem;color:var(--olive-500);">
-                      <i class="bi bi-pin-map me-1"></i>
-                      <span th:text="${enc.latitud}">0</span>,
-                      <span th:text="${enc.longitud}">0</span>
-                    </span>
-                                    <span th:unless="${enc.latitud != null}" style="color:var(--ink-muted);font-size:.8rem;">—</span>
+                                    <span th:if="${enc.latitud != null}"
+                                          style="font-family:var(--font-mono);font-size:.75rem;color:var(--olive-500);">
+                                        <i class="bi bi-pin-map me-1"></i>
+                                        <span th:text="${enc.latitud}">0</span>,
+                                        <span th:text="${enc.longitud}">0</span>
+                                    </span>
+                                    <span th:unless="${enc.latitud != null}"
+                                          style="color:var(--ink-muted);font-size:.8rem;">—</span>
                                 </td>
                                 <td>
                                     <small class="text-muted"
@@ -89,12 +83,10 @@
                                 </td>
                                 <td>
                                     <img th:if="${enc.fotoBase64 != null}"
-                                         th:src="${enc.fotoBase64}"
-                                         alt="Foto"
+                                         th:src="${enc.fotoBase64}" alt="Foto"
                                          style="width:44px;height:44px;object-fit:cover;
-                border-radius:var(--radius);
-                border:1.5px solid var(--clay-200);
-                box-shadow:var(--shadow-xs);">
+                                                border-radius:var(--radius);border:1.5px solid var(--clay-200);
+                                                box-shadow:var(--shadow-xs);">
                                     <span th:unless="${enc.fotoBase64 != null}"
                                           style="color:var(--ink-muted);font-size:.8rem;">—</span>
                                 </td>
@@ -127,7 +119,7 @@
 
             <div th:if="${#lists.isEmpty(encuestas)}" class="text-center py-5">
                 <div style="width:72px;height:72px;background:var(--sand-200);border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                            display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
                     <i class="bi bi-collection" style="font-size:2rem;color:var(--clay-300);"></i>
                 </div>
                 <h5 style="color:var(--ink-soft);">Sin registros en el servidor</h5>
@@ -144,9 +136,12 @@
                 <p class="mb-0" style="font-size:.85rem;color:var(--ink-muted);">
                     Registros guardados en este dispositivo, sin conexión.
                 </p>
-                <button class="btn btn-olive btn-sm" onclick="sincronizarTodo()">
-                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo
-                </button>
+                <div class="d-flex gap-2 align-items-center">
+                    <span id="worker-status" style="font-size:.78rem;display:none;"></span>
+                    <button class="btn btn-olive btn-sm" onclick="sincronizarTodo()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo vía WebSocket
+                    </button>
+                </div>
             </div>
 
             <div id="lista-local">
@@ -156,21 +151,20 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Modal preview foto -->
+    <!-- Modal foto -->
     <div class="modal fade" id="modalFoto" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Fotografia del Encuestado</h5>
+                    <h5 class="modal-title">Fotografía del Encuestado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center p-3">
                     <img id="modal-foto-img" src="" alt="Foto"
                          style="max-width:100%;max-height:70vh;object-fit:contain;
-                            border-radius:var(--radius-lg);box-shadow:var(--shadow-md);">
+                                border-radius:var(--radius-lg);box-shadow:var(--shadow-md);">
                     <p id="modal-foto-sin" class="text-muted mt-3" style="display:none;">
                         <i class="bi bi-image me-2"></i>Sin fotografía
                     </p>
@@ -180,59 +174,88 @@
     </div>
 
     <script>
-        function cargarLocales()
-        {
+        //websocker
+        var syncWorker = new Worker('/js/worker.js');
+
+        syncWorker.onmessage = function(e) {
+            var statusEl = document.getElementById('worker-status');
+            var btnSync  = document.querySelector('[onclick="sincronizarTodo()"]');
+            if (btnSync) { btnSync.disabled = false; btnSync.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo vía WebSocket'; }
+
+            if (e.data.status === 'SUCCESS') {
+
+                var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+                pendientes.forEach(function(p) { p.sincronizado = true; });
+                localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+                cargarLocales();
+                statusEl.style.display = 'inline';
+                statusEl.style.color   = 'var(--olive-500)';
+                statusEl.innerHTML     = '<i class="bi bi-check-circle me-1"></i>¡Sincronización exitosa!';
+                setTimeout(function() { statusEl.style.display = 'none'; location.reload(); }, 1500);
+            } else if (e.data.status === 'EMPTY') {
+                statusEl.style.display = 'inline';
+                statusEl.style.color   = 'var(--ink-muted)';
+                statusEl.textContent   = 'No había datos pendientes.';
+                setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+            } else {
+                statusEl.style.display = 'inline';
+                statusEl.style.color   = '#c0392b';
+                statusEl.innerHTML     = '<i class="bi bi-exclamation-circle me-1"></i>' + (e.data.detalle || 'Error al sincronizar');
+                setTimeout(function() { statusEl.style.display = 'none'; }, 5000);
+            }
+        };
+
+        syncWorker.onerror = function(err) { console.error('Worker error:', err); };
+
+        function cargarLocales() {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
-            var badge = document.getElementById('badge-local-count');
-            var pendCount = pendientes.filter(p => !p.sincronizado).length;
+            var badge      = document.getElementById('badge-local-count');
+            var pendCount  = pendientes.filter(function(p) { return !p.sincronizado; }).length;
             badge.textContent = pendCount;
 
             var container = document.getElementById('lista-local');
-            if (!pendientes.length)
-            {
-                container.innerHTML = '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;"><i class="bi bi-check-circle" ' +
-                    'style="font-size:2rem;color:var(--olive-400);display:block;margin-bottom:.5rem;"></i>No hay registros locales pendientes</div>';
+            if (!pendientes.length) {
+                container.innerHTML = '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;">' +
+                    '<i class="bi bi-check-circle" style="font-size:2rem;color:var(--olive-400);display:block;margin-bottom:.5rem;"></i>' +
+                    'No hay registros locales pendientes</div>';
                 return;
             }
 
             var html = '<div class="row g-3">';
-            pendientes.forEach(function(enc, idx)
-            {
+            pendientes.forEach(function(enc, idx) {
                 var sinc = enc.sincronizado;
-                html += '<div class="col-md-6">';
-                html += '<div class="card" style="border-left:3px solid '+(sinc?'var(--olive-400)':'var(--terra-400)')+'!important;">';
+                html += '<div class="col-md-6"><div class="card" style="border-left:3px solid ' +
+                    (sinc ? 'var(--olive-400)' : 'var(--terra-400)') + '!important;">';
                 html += '<div class="card-body py-3 px-4">';
                 html += '<div class="d-flex justify-content-between align-items-start">';
-                html += '<div><strong style="font-size:.9rem;">'+enc.nombre+'</strong>';
-                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);"><i class="bi bi-geo-alt me-1"></i>'+enc.sector+'</span></div>';
-                html += '<span class="badge '+(sinc?'badge-olive':'badge-terra')+'">'+(sinc?'Sincronizado':'Pendiente')+'</span>';
-                html += '</div>';
-                html += '<div class="d-flex gap-2 mt-3">';
-                if (!sinc) html += '<button class="btn btn-clay btn-sm" onclick="enviarLocal('+idx+')"><i class="bi bi-cloud-upload me-1"></i>Enviar</button>';
-                html += '<button class="btn btn-outline-danger btn-sm" onclick="eliminarLocal('+idx+')"><i class="bi bi-trash"></i></button>';
+                html += '<div><strong style="font-size:.9rem;">' + enc.nombre + '</strong>';
+                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);"><i class="bi bi-geo-alt me-1"></i>' + enc.sector + '</span></div>';
+                html += '<span class="badge ' + (sinc ? 'badge-olive' : 'badge-terra') + '">' + (sinc ? 'Sincronizado' : 'Pendiente') + '</span>';
+                html += '</div><div class="d-flex gap-2 mt-3">';
+                if (!sinc) html += '<button class="btn btn-clay btn-sm" onclick="enviarLocal(' + idx + ')"><i class="bi bi-cloud-upload me-1"></i>Enviar</button>';
+                html += '<button class="btn btn-outline-danger btn-sm" onclick="eliminarLocal(' + idx + ')"><i class="bi bi-trash"></i></button>';
                 html += '</div></div></div></div>';
             });
             html += '</div>';
             container.innerHTML = html;
         }
 
-        async function enviarLocal(idx)
-        {
+
+        async function enviarLocal(idx) {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
-            var enc = pendientes[idx];
+            var enc        = pendientes[idx];
             if (!navigator.onLine) { alert('Sin conexión.'); return; }
             try {
-                var r = await fetch('/api/encuestas',
-                    {
-                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(enc)
-                    });
+                var r = await fetch('/api/encuestas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(enc)
+                });
                 if (r.ok) {
                     pendientes[idx].sincronizado = true;
                     localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
                     cargarLocales();
-
-
-                    setTimeout(() => location.reload(), 800);
+                    setTimeout(function() { location.reload(); }, 800);
                 } else { alert('Error al sincronizar.'); }
             } catch(e) { alert('Error de conexión.'); }
         }
@@ -245,55 +268,41 @@
             cargarLocales();
         }
 
-        async function sincronizarTodo() {
+        function sincronizarTodo()
+        {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
-            var noSync = pendientes.filter(p => !p.sincronizado);
+            var noSync     = pendientes.filter(function(p) { return !p.sincronizado; });
+
             if (!noSync.length) { alert('No hay registros pendientes.'); return; }
-            if (!navigator.onLine) { alert('Sin conexion.'); return; }
+            if (!navigator.onLine) { alert('Sin conexión.'); return; }
 
-            var errores = 0;
-            for (var i = 0; i < pendientes.length; i++) {
-                if (pendientes[i].sincronizado) continue;
-                try {
-                    var r = await fetch('/api/encuestas', {
-                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(pendientes[i])
-                    });
-                    if (r.ok) pendientes[i].sincronizado = true;
-                    else errores++;
-                } catch(e) { errores++; }
-            }
-            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
-            cargarLocales();
+            var btnSync  = document.querySelector('[onclick="sincronizarTodo()"]');
+            var statusEl = document.getElementById('worker-status');
 
-            if (errores === 0) {
+            btnSync.disabled = true;
+            btnSync.innerHTML = '<span class="spinner-clay" style="width:14px;height:14px;border-width:2px;"></span> Conectando ...';
+            statusEl.style.display = 'inline';
+            statusEl.style.color   = 'var(--ink-muted)';
+            statusEl.textContent   = 'Enviando al Web Worker...';
 
-                alert('Sincronizacion completa.');
-                location.reload();
+            syncWorker.postMessage({ type: 'SYNC', payload: JSON.stringify(noSync) });
+        }
+
+        function verFoto(base64) {
+            var img = document.getElementById('modal-foto-img');
+            var sin = document.getElementById('modal-foto-sin');
+            if (base64) {
+                img.src = base64; img.style.display = 'block'; sin.style.display = 'none';
             } else {
-                alert('' + errores + ' registro(s) fallaron. Intenta de nuevo.');
-                cargarLocales();
+                img.src = ''; img.style.display = 'none'; sin.style.display = 'block';
             }
+            new bootstrap.Modal(document.getElementById('modalFoto')).show();
         }
 
         document.addEventListener('DOMContentLoaded', cargarLocales);
         document.querySelector('[href="#tab-local"]').addEventListener('click', function() {
             setTimeout(cargarLocales, 100);
         });
-
-        function verFoto(base64) {
-            var img = document.getElementById('modal-foto-img');
-            var sin = document.getElementById('modal-foto-sin');
-            if (base64) {
-                img.src = base64;
-                img.style.display = 'block';
-                sin.style.display = 'none';
-            } else {
-                img.src = '';
-                img.style.display = 'none';
-                sin.style.display = 'block';
-            }
-            new bootstrap.Modal(document.getElementById('modalFoto')).show();
-        }
     </script>
 
 </main>

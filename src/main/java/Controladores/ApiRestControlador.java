@@ -33,18 +33,18 @@ public class ApiRestControlador
 
     public void registrarRutas(Javalin app)
     {
-        //Ruta pública: para obtener un token JWT
+
         app.post("/api/rest/auth", this::autenticar);
 
-        //Middleware: protege todas las rutas rest
+
         app.before("/api/rest/formularios/*", this::validarJWT);
 
-        //Rutas protegidas
+
         app.get("/api/rest/formularios/mis-registros", this::misRegistros);
         app.post("/api/rest/formularios/crear",        this::crearFormulario);
     }
 
-    //POST
+
     private void autenticar(io.javalin.http.Context ctx)
     {
         try {

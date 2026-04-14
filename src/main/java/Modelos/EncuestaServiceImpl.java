@@ -6,7 +6,6 @@ import org.example.grpc.*;
 
 import static com.mongodb.client.model.Filters.eq;
 
-//Esta clase se encarga de heredar el código autogenerado por Protobuf
 public class EncuestaServiceImpl extends EncuestaServicioGrpc.EncuestaServicioImplBase
 {
     private final MongoCollection<Formulario> coleccion;

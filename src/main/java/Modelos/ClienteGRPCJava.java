@@ -98,8 +98,8 @@ public class ClienteGRPCJava extends JFrame
     {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        tabs.addTab("📋  Listar Formularios",  crearTabListar());
-        tabs.addTab("➕  Crear Formulario",    crearTabCrear());
+        tabs.addTab("  Listar Formularios",  crearTabListar());
+        tabs.addTab("  Crear Formulario",    crearTabCrear());
         return tabs;
     }
 
@@ -288,17 +288,18 @@ public class ClienteGRPCJava extends JFrame
 
             stub = EncuestaServicioGrpc.newBlockingStub(channel);
 
-            lblEstado.setText("● Conectado  →  " + txtHost.getText().trim() + ":" + txtPuerto.getText().trim());
+            lblEstado.setText(" Conectado  →  " + txtHost.getText().trim() + ":" + txtPuerto.getText().trim());
             lblEstado.setForeground(new Color(0x61724A));
 
             JOptionPane.showMessageDialog(this,
                     "Canal gRPC creado hacia " + txtHost.getText().trim() + ":" + txtPuerto.getText().trim(),
-                    "Conexión establecida", JOptionPane.INFORMATION_MESSAGE);
+                    "Conexion establecida", JOptionPane.INFORMATION_MESSAGE);
 
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException ex)
+        {
             JOptionPane.showMessageDialog(this, "El puerto debe ser un número.", "Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            lblEstado.setText("● Error de conexión");
+            lblEstado.setText(" Error de conexion");
             lblEstado.setForeground(Color.RED);
             JOptionPane.showMessageDialog(this,
                     "No se pudo crear el canal gRPC:\n" + ex.getMessage(),
@@ -308,10 +309,11 @@ public class ClienteGRPCJava extends JFrame
 
     private void desconectar()
     {
-        if (channel != null && !channel.isShutdown()) {
+        if (channel != null && !channel.isShutdown())
+        {
             channel.shutdown();
             stub = null;
-            lblEstado.setText("● Desconectado");
+            lblEstado.setText(" Desconectado");
             lblEstado.setForeground(new Color(0xBF9870));
         }
     }
@@ -338,21 +340,21 @@ public class ClienteGRPCJava extends JFrame
             FormularioRespuesta respuesta = stub.crearFormulario(request);
 
             if (respuesta.getExito()) {
-                txtRespuestaCrear.setText("✓ Éxito\n" + respuesta.getMensaje());
+                txtRespuestaCrear.setText(" Éxito\n" + respuesta.getMensaje());
                 txtRespuestaCrear.setForeground(new Color(0x4A5A38));
             } else {
-                txtRespuestaCrear.setText("✗ Error del servidor gRPC:\n" + respuesta.getMensaje());
+                txtRespuestaCrear.setText(" Error del servidor gRPC:\n" + respuesta.getMensaje());
                 txtRespuestaCrear.setForeground(new Color(0xC0392B));
             }
 
         } catch (NumberFormatException ex) {
-            txtRespuestaCrear.setText("✗ Latitud y longitud deben ser números válidos.");
+            txtRespuestaCrear.setText(" Latitud y longitud deben ser números válidos.");
             txtRespuestaCrear.setForeground(new Color(0xC0392B));
         } catch (StatusRuntimeException ex) {
-            txtRespuestaCrear.setText("✗ Error gRPC: " + ex.getStatus().getDescription());
+            txtRespuestaCrear.setText(" Error gRPC: " + ex.getStatus().getDescription());
             txtRespuestaCrear.setForeground(new Color(0xC0392B));
         } catch (Exception ex) {
-            txtRespuestaCrear.setText("✗ Error inesperado: " + ex.getMessage());
+            txtRespuestaCrear.setText(" Error inesperado: " + ex.getMessage());
             txtRespuestaCrear.setForeground(new Color(0xC0392B));
         }
     }

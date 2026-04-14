@@ -39,7 +39,7 @@ public class AdminControlador
         app.get("/supervisor/dashboard",               this::dashboardSupervisor);
         app.get("/supervisor/encuestas",               this::todasLasEncuestas);
     }
-    //GET
+
     private void dashboard(io.javalin.http.Context ctx)
     {
         if (!esAdmin(ctx)) return;
@@ -52,7 +52,7 @@ public class AdminControlador
         }
     }
 
-    //GET
+
     private void gestionUsuarios(io.javalin.http.Context ctx)
     {
         if (!soloAdmin(ctx)) return;
@@ -73,7 +73,7 @@ public class AdminControlador
         }
     }
 
-    //GET
+
     private void todasLasEncuestas(io.javalin.http.Context ctx)
     {
         if (!esAdmin(ctx)) return;

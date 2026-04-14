@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class EncuestaControlador {
+public class EncuestaControlador
+{
     private final Datastore datastore;
     private final ObjectMapper mapper;
 
@@ -23,7 +24,8 @@ public class EncuestaControlador {
         this.mapper = mapper;
     }
 
-    public void registrarRutas(Javalin app) {
+    public void registrarRutas(Javalin app)
+    {
         app.get("/encuestas/nueva",          this::mostrarFormulario);
         app.post("/api/encuestas",           this::guardarEncuesta);
         app.get("/mis-encuestas",            this::misEncuestas);
@@ -33,8 +35,9 @@ public class EncuestaControlador {
         app.post("/encuestas/{id}/eliminar", this::eliminarEncuesta);
         app.get("/mapa",                     this::mostrarMapa);
     }
-    //GET
-    private void mostrarFormulario(io.javalin.http.Context ctx) {
+
+    private void mostrarFormulario(io.javalin.http.Context ctx)
+    {
         if (ctx.sessionAttribute("usuario") == null) {
             ctx.redirect("login");
             return;
@@ -44,8 +47,9 @@ public class EncuestaControlador {
         ctx.render("encuesta_form.html", model);
     }
 
-    //POST
-    private void guardarEncuesta(io.javalin.http.Context ctx) {
+
+    private void guardarEncuesta(io.javalin.http.Context ctx)
+    {
         try {
 
             @SuppressWarnings("unchecked")
@@ -94,7 +98,7 @@ public class EncuestaControlador {
         }
     }
 
-    //GET
+
     private void misEncuestas(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) {
             ctx.redirect("login");
@@ -102,7 +106,7 @@ public class EncuestaControlador {
         }
         Usuario sesion = ctx.sessionAttribute("usuario");
 
-        // Búsqueda con Morphia
+
         List<Formulario> encuestas = datastore.find(Formulario.class)
                 .filter(Filters.eq("usuarioRegistro", sesion.getUsername()))
                 .iterator(new dev.morphia.query.FindOptions().sort(Sort.descending("fechaRegistro")))
@@ -117,7 +121,7 @@ public class EncuestaControlador {
         ctx.render("me_encuesta.html", model);
     }
 
-    //GET
+
     private void detalleEncuesta(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) {
             ctx.redirect("login");
@@ -125,7 +129,7 @@ public class EncuestaControlador {
         }
 
         try {
-            // Búsqueda por ID en Morphia
+
             Formulario f = datastore.find(Formulario.class)
                     .filter(Filters.eq("_id", new ObjectId(ctx.pathParam("id"))))
                     .first();
@@ -146,7 +150,7 @@ public class EncuestaControlador {
         }
     }
 
-    //POST
+
     private void eliminarEncuesta(io.javalin.http.Context ctx) {
 
         String rol = "";
@@ -172,14 +176,14 @@ public class EncuestaControlador {
         }
     }
 
-    //GET
+
     private void mostrarMapa(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") == null) {
             ctx.redirect("login");
             return;
         }
 
-        // Búsqueda de todas las encuestas con Morphia
+
         List<Formulario> todas = datastore.find(Formulario.class)
                 .iterator(new dev.morphia.query.FindOptions().sort(Sort.descending("fechaRegistro")))
                 .toList();

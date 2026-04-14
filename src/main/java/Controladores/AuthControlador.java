@@ -12,7 +12,6 @@ public class AuthControlador {
 
     private final Datastore datastore;
 
-    // Cambiado para usar Morphia
     public AuthControlador(Datastore datastore) {
         this.datastore = datastore;
     }
@@ -26,7 +25,7 @@ public class AuthControlador {
         app.get("/perfil",   this::mostrarPerfil);
     }
 
-    //GET
+
     private void mostrarLogin(io.javalin.http.Context ctx) {
         if (ctx.sessionAttribute("usuario") != null) {
             ctx.redirect("/encuestas/nueva");
@@ -38,12 +37,12 @@ public class AuthControlador {
         ctx.render("login.html", model);
     }
 
-    //POST
+
     private void procesarLogin(io.javalin.http.Context ctx) {
         String username = ctx.formParam("username");
         String password = ctx.formParam("password");
 
-        // Búsqueda con Morphia
+
         Usuario userDb = datastore.find(Usuario.class)
                 .filter(Filters.eq("username", username))
                 .first();
@@ -69,20 +68,20 @@ public class AuthControlador {
         }
     }
 
-    //GET
+
     private void logout(io.javalin.http.Context ctx) {
         ctx.req().getSession().invalidate();
         ctx.redirect("/login?exito=Sesión cerrada correctamente");
     }
 
-    //GET
+
     private void mostrarRegistro(io.javalin.http.Context ctx) {
         Map<String, Object> model = new HashMap<>();
         model.put("error", ctx.queryParam("error"));
         ctx.render("registro.html", model);
     }
 
-    //POST
+
     private void procesarRegistro(io.javalin.http.Context ctx) {
         String nombre   = ctx.formParam("nombre");
         String username = ctx.formParam("username");

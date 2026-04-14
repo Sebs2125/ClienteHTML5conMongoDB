@@ -66,12 +66,14 @@ public class WebSocketControlador
                     new TypeReference<List<Formulario>>() {}
             );
 
-            if (encuestas == null || encuestas.isEmpty()) {
+            if (encuestas == null || encuestas.isEmpty())
+            {
                 ctx.send("VACIO");
                 return;
             }
 
-            encuestas.forEach(f -> {
+            encuestas.forEach(f ->
+            {
                 if (f.getFechaRegistro() == null) f.setFechaRegistro(LocalDateTime.now());
             });
 
@@ -80,7 +82,8 @@ public class WebSocketControlador
             broadcastNuevosRegistros(encuestas);
             ctx.send("OK");
 
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             System.err.println(" Error WS sincronización: " + e.getMessage());
             ctx.send("ERROR");
         }
@@ -113,7 +116,8 @@ public class WebSocketControlador
 
 
             Set<WsContext> cerrados = new HashSet<>();
-            for (WsContext listener : updateListeners) {
+            for (WsContext listener : updateListeners)
+            {
                 try {
                     listener.send(broadcastJson);
                 } catch (Exception e) {

@@ -96,9 +96,9 @@ public class ClienteRESTJava extends JFrame
     {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        tabs.addTab("🔑  Autenticación",    crearTabLogin());
-        tabs.addTab("📋  Mis Formularios",  crearTabListar());
-        tabs.addTab("➕  Crear Formulario", crearTabCrear());
+        tabs.addTab("  Autenticación",    crearTabLogin());
+        tabs.addTab("  Mis Formularios",  crearTabListar());
+        tabs.addTab("  Crear Formulario", crearTabCrear());
         return tabs;
     }
 
@@ -156,14 +156,12 @@ public class ClienteRESTJava extends JFrame
         return panel;
     }
 
-    // ── Tab Listar ───────────────────────────────────────────────────────────
     private JPanel crearTabListar()
     {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBackground(new Color(0xFAF6F0));
         panel.setBorder(new EmptyBorder(12, 16, 12, 16));
 
-        // Barra superior
         JPanel barraTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         barraTop.setBackground(new Color(0xFAF6F0));
         JButton btnListar = botonPrimario("Listar mis formularios");
@@ -173,7 +171,7 @@ public class ClienteRESTJava extends JFrame
         lblTotalRegistros.setForeground(new Color(0x6B6258));
         barraTop.add(lblTotalRegistros);
 
-        // Tabla
+
         String[] columnas = { "ID", "Nombre", "Sector", "Nivel Escolar" };
         modeloTabla = new DefaultTableModel(columnas, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
@@ -192,7 +190,6 @@ public class ClienteRESTJava extends JFrame
         return panel;
     }
 
-    // ── Tab Crear ────────────────────────────────────────────────────────────
     private JPanel crearTabCrear()
     {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -259,7 +256,6 @@ public class ClienteRESTJava extends JFrame
         return bar;
     }
 
-    // ── Lógica REST ──────────────────────────────────────────────────────────
 
 
     private void autenticar()
@@ -305,9 +301,7 @@ public class ClienteRESTJava extends JFrame
         }
     }
 
-    /**
-     * GET /api/rest/formularios/mis-registros — lista con Bearer JWT.
-     */
+
     private void listarFormularios()
     {
         if (jwtToken.isEmpty()) {
@@ -387,7 +381,6 @@ public class ClienteRESTJava extends JFrame
         }
     }
 
-    // ── Utilidades ───────────────────────────────────────────────────────────
     private String base()
     {
         return "http://" + txtHost.getText().trim() + ":" + txtPuerto.getText().trim();

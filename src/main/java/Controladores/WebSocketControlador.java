@@ -35,7 +35,7 @@ public class WebSocketControlador
             ws.onClose(ctx   -> System.out.println(" WS cerrado: "   + ctx.sessionId()));
             ws.onError(ctx   -> System.err.println(" WS error: "      + ctx.error()));
         });
-        app.ws("/update", ws ->{
+        app.ws("/updates", ws ->{
             ws.onConnect(ctx -> {
                 updateListeners.add(ctx);
                 System.out.println(" WS updates conectado: " + ctx.sessionId()
@@ -77,6 +77,7 @@ public class WebSocketControlador
 
             colFormularios.insertMany(encuestas);
             System.out.println(" B" + encuestas.size() + " encuesta(s) guardadas via WS");
+            broadcastNuevosRegistros(encuestas);
             ctx.send("OK");
 
         } catch (Exception e) {

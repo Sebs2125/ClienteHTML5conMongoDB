@@ -257,6 +257,7 @@
 
         function conectarUpdatesEnVivo()
         {
+            if (!navigator.onLine) return;
             if (!window.WebSocket) return;
             if (updatesSocket && updatesSocket.readyState === WebSocket.OPEN) return;
 
@@ -268,7 +269,6 @@
                 updatesSocket.onopen = function() {
                     intentosReconexion = 0;
                     document.getElementById('rt-indicator').style.display = 'inline-flex';
-                    console.log('[RT] Conectado al canal de actualizaciones en tiempo real');
                 };
 
                 updatesSocket.onmessage = function(evt)
@@ -280,9 +280,7 @@
                             agregarFilasEnTiempoReal(data.records);
                             actualizarBadgeServidor(data.count);
                         }
-                    } catch(e) {
-                        console.error('[RT] Error procesando mensaje:', e);
-                    }
+                    } catch(e) {}
                 };
 
                 updatesSocket.onclose = function(ev)
@@ -290,6 +288,7 @@
                     document.getElementById('rt-indicator').style.display = 'none';
                     if (ev.code !== 1000 && ev.code !== 1005) {
                         intentosReconexion++;
+
                         var delay = Math.min(3000 * intentosReconexion, 30000);
                         reconectarTimer = setTimeout(function() {
                             if (navigator.onLine) conectarUpdatesEnVivo();
@@ -300,9 +299,7 @@
                 updatesSocket.onerror = function() {
                 };
 
-            } catch(e) {
-                console.error('[RT] Error creando WebSocket de updates:', e);
-            }
+            } catch(e) {}
         }
 
         function mostrarToastTiempoReal(count)
@@ -569,9 +566,9 @@
 
             // Cargar lista local
             cargarLocales();
-
-            // Conectar canal de tiempo real si hay conexión
-            if (navigator.onLine) conectarUpdatesEnVivo();
+            if (navigator.onLine)
+            { setTimeout(conectarUpdatesEnVivo,1000);
+            }
         });
 
         // Re-conectar cuando recupera internet

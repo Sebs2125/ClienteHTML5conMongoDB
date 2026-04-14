@@ -1,0 +1,9 @@
+{
+  "name": "OP Encuestas PUCMM",
+  "short_name": "Encuestas",
+  "start_url": "/encuestas/nueva",
+  "display": "standalone",
+  "background_color": "#faf6f0",
+  "theme_color": "#c96a3a",
+  "icons": []
+}

@@ -40,7 +40,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        //1- MongoDB Atlas & Inicialización
+        //1- MongoDB Atlas & Inicializacion
         String uri = "mongodb+srv://eeeb0002_db_user:3Ch9p4xut9kpE2fB@prueba0.zgrgp7d.mongodb.net/?retryWrites=true&w=majority&appName=prueba0";
 
         CodecRegistry codecRegistry = fromRegistries(
@@ -83,6 +83,15 @@ public class Main {
         //6- Configuración de Javalin
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
+
+            //Session que permite tener timeout+cookies segura
+            config.jetty.modifyServletContextHandler(handler ->{
+            handler.getSessionHandler().setMaxInactiveInterval(60*60*8);
+            handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
+            handler.getSessionHandler().getSessionCookieConfig().setPath("/");
+
+            });
+
 
             // Usar Thymeleaf como renderizador
             config.fileRenderer((file, model, ctx) -> {
@@ -131,7 +140,9 @@ public class Main {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
         resolver.setSuffix(".html");
-        resolver.setCacheable(false); // Desactivar caché en desarrollo
+        //cache para thymeleaf mejora velocidad de carga
+        resolver.setCacheable(true);
+        resolver.setCacheTTLMs(300000L);
         resolver.setCharacterEncoding("UTF-8");
 
         templateEngine = new TemplateEngine();

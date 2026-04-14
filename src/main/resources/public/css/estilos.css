@@ -983,3 +983,76 @@ hr {
     .stat-card { flex-direction: column; text-align: center; }
     .stat-icon { width: 48px; height: 48px; font-size: 1.2rem; }
 }
+
+.navbar-clay .navbar-toggler {
+    border: 1.5px solid rgba(0, 0, 0, 0.2) !important;
+    color: var(--gray-800) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-radius: var(--radius-sm);
+    padding: 0.375rem 0.65rem;
+}
+
+.navbar-clay .navbar-toggler:focus {
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15) !important;
+    outline: none;
+}
+
+.navbar-clay .navbar-toggler i {
+    color: var(--gray-800);
+    font-size: 1.3rem;
+    display: block;
+}
+
+/*para el diseño movil */
+@media (max-width: 991.98px) {
+    .navbar-clay .navbar-collapse {
+        background: #ffffff;
+        border-top: 1px solid var(--gray-200);
+        border-radius: 0 0 var(--radius) var(--radius);
+        padding: 0.5rem 0 0.75rem 0;
+        margin-top: 0.4rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Espaciado de los ítems de la barra */
+    .navbar-clay .navbar-nav {
+        padding: 0;
+        gap: 0 !important;
+    }
+
+    /* Links del menú - visibles y con buen área de toque */
+    .nav-link-clay {
+        color: var(--gray-800) !important;
+        padding: 0.7rem 1.25rem !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        align-items: center;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .nav-link-clay:hover,
+    .nav-link-clay.active {
+        color: var(--primary-blue) !important;
+        background: rgba(0, 102, 204, 0.06) !important;
+        border-bottom-color: var(--gray-100);
+    }
+
+    /* Sección del usuario (dropdown) */
+    .navbar-clay .navbar-nav .dropdown .nav-link-clay {
+        padding: 0.7rem 1.25rem !important;
+    }
+
+    /* Botón "Ingresar" en móvil */
+    .navbar-clay .btn.btn-primary.btn-sm {
+        margin: 0.5rem 1.25rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Separador entre nav-left y nav-right */
+    .navbar-clay .navbar-nav.me-auto {
+        border-bottom: 1px solid var(--gray-200);
+        margin-bottom: 0.25rem;
+        padding-bottom: 0.25rem;
+    }
+}

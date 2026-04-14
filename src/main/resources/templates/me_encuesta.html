@@ -10,10 +10,22 @@
             <h2>Mis Encuestas</h2>
             <p class="section-subtitle">Registros enviados y pendientes de sincronizacion</p>
         </div>
-        <a href="/encuestas/nueva" class="btn btn-clay">
-            <i class="bi bi-plus-circle me-1"></i>Nueva Encuesta
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span id="rt-indicator" title="Actualizaciones en tiempo real"
+                  style="display:none;font-size:.75rem;font-weight:600;
+                         background:rgba(97,114,74,.12);color:var(--olive-500);
+                         padding:.25rem .7rem;border-radius:20px;border:1px solid rgba(97,114,74,.25);">
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                             background:var(--olive-400);animation:pulse-dot 1.4s infinite;
+                             margin-right:.35rem;"></span>En vivo
+            </span>
+            <a href="/encuestas/nueva" class="btn btn-clay">
+                <i class="bi bi-plus-circle me-1"></i>Nueva Encuesta
+            </a>
+        </div>
     </div>
+
+    <div id="rt-notifications"></div>
 
     <div th:if="${exito}" class="alert alert-success mb-3">
         <i class="bi bi-check-circle me-2"></i><span th:text="${exito}"></span>
@@ -26,7 +38,8 @@
         <li class="nav-item">
             <a class="nav-link active" data-bs-toggle="tab" href="#tab-servidor">
                 <i class="bi bi-cloud-check me-1"></i>En Servidor
-                <span class="badge ms-1" style="background:var(--terra-400);color:white;"
+                <span class="badge ms-1" id="badge-servidor"
+                      style="background:var(--terra-400);color:white;"
                       th:text="${#lists.size(encuestas)}">0</span>
             </a>
         </li>
@@ -40,12 +53,11 @@
 
     <div class="tab-content">
 
-        <!-- TAB SERVIDOR -->
         <div class="tab-pane fade show active" id="tab-servidor">
             <div class="card" th:if="${not #lists.isEmpty(encuestas)}">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-clay mb-0">
+                        <table class="table table-clay mb-0" id="tabla-servidor">
                             <thead>
                             <tr>
                                 <th>Encuestado</th>
@@ -57,7 +69,7 @@
                                 <th class="text-end">Acciones</th>
                             </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tbody-servidor">
                             <tr th:each="enc : ${encuestas}">
                                 <td><span class="fw-bold" th:text="${enc.nombre}">—</span></td>
                                 <td>
@@ -117,7 +129,7 @@
                 </div>
             </div>
 
-            <div th:if="${#lists.isEmpty(encuestas)}" class="text-center py-5">
+            <div th:if="${#lists.isEmpty(encuestas)}" id="empty-servidor" class="text-center py-5">
                 <div style="width:72px;height:72px;background:var(--sand-200);border-radius:50%;
                             display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
                     <i class="bi bi-collection" style="font-size:2rem;color:var(--clay-300);"></i>
@@ -130,7 +142,6 @@
             </div>
         </div>
 
-        <!-- TAB LOCAL -->
         <div class="tab-pane fade" id="tab-local">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <p class="mb-0" style="font-size:.85rem;color:var(--ink-muted);">
@@ -153,7 +164,6 @@
         </div>
     </div>
 
-    <!-- Modal foto -->
     <div class="modal fade" id="modalFoto" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -173,25 +183,226 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalEditarLocal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2" style="color:var(--terra-400);"></i>
+                        Editar Registro Local
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="edit-local-idx">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" id="edit-local-nombre" class="form-control"
+                                   placeholder="Nombre del encuestado">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Sector</label>
+                            <input type="text" id="edit-local-sector" class="form-control"
+                                   placeholder="Sector / barrio">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Nivel Escolar</label>
+                            <select id="edit-local-nivel" class="form-select">
+                                <option value="BASICO">Básico</option>
+                                <option value="MEDIO">Medio</option>
+                                <option value="UNIVERSITARIO">Grado Universitario</option>
+                                <option value="POSTGRADO">Postgrado</option>
+                                <option value="DOCTORADO">Doctorado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sand" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-clay" onclick="guardarEdicionLocal()">
+                        <i class="bi bi-floppy me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        //websocker
+
+
+        function registrarAccesoWebStorage()
+        {
+            var accesos = JSON.parse(localStorage.getItem('accesos_log') || '[]');
+            accesos.unshift({
+                pagina:    window.location.pathname,
+                timestamp: new Date().toISOString(),
+                online:    navigator.onLine,
+                userAgent: navigator.userAgent.substring(0, 60)
+            });
+            if (accesos.length > 100) accesos = accesos.slice(0, 100);
+            localStorage.setItem('accesos_log', JSON.stringify(accesos));
+
+            if (!navigator.onLine) {
+                console.log('[Web Storage] Acceso offline registrado:', new Date().toISOString());
+            }
+        }
+
+
+        var updatesSocket     = null;
+        var reconectarTimer   = null;
+        var intentosReconexion = 0;
+
+        function conectarUpdatesEnVivo()
+        {
+            if (!window.WebSocket) return;
+            if (updatesSocket && updatesSocket.readyState === WebSocket.OPEN) return;
+
+            clearTimeout(reconectarTimer);
+            var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            try {
+                updatesSocket = new WebSocket(protocol + '//' + location.host + '/updates');
+
+                updatesSocket.onopen = function() {
+                    intentosReconexion = 0;
+                    document.getElementById('rt-indicator').style.display = 'inline-flex';
+                    console.log('[RT] Conectado al canal de actualizaciones en tiempo real');
+                };
+
+                updatesSocket.onmessage = function(evt)
+                {
+                    try {
+                        var data = JSON.parse(evt.data);
+                        if (data.type === 'NEW_RECORDS' && data.records && data.records.length > 0) {
+                            mostrarToastTiempoReal(data.count);
+                            agregarFilasEnTiempoReal(data.records);
+                            actualizarBadgeServidor(data.count);
+                        }
+                    } catch(e) {
+                        console.error('[RT] Error procesando mensaje:', e);
+                    }
+                };
+
+                updatesSocket.onclose = function(ev)
+                {
+                    document.getElementById('rt-indicator').style.display = 'none';
+                    if (ev.code !== 1000 && ev.code !== 1005) {
+                        intentosReconexion++;
+                        var delay = Math.min(3000 * intentosReconexion, 30000);
+                        reconectarTimer = setTimeout(function() {
+                            if (navigator.onLine) conectarUpdatesEnVivo();
+                        }, delay);
+                    }
+                };
+
+                updatesSocket.onerror = function() {
+                };
+
+            } catch(e) {
+                console.error('[RT] Error creando WebSocket de updates:', e);
+            }
+        }
+
+        function mostrarToastTiempoReal(count)
+        {
+            var notifEl = document.createElement('div');
+            notifEl.className = 'alert alert-success mb-2 d-flex align-items-center gap-2';
+            notifEl.style.animation = 'fadeUp .3s ease';
+            notifEl.innerHTML =
+                '<i class="bi bi-bell-fill" style="color:var(--olive-500);flex-shrink:0;"></i>' +
+                '<span><strong>' + count + ' nuevo(s) registro(s)</strong> sincronizado(s) en tiempo real.</span>' +
+                '<button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>';
+
+            var container = document.getElementById('rt-notifications');
+            container.insertAdjacentElement('afterbegin', notifEl);
+            setTimeout(function() { if (notifEl.parentElement) notifEl.remove(); }, 7000);
+        }
+
+        function actualizarBadgeServidor(added)
+        {
+            var badge = document.getElementById('badge-servidor');
+            if (badge) badge.textContent = (parseInt(badge.textContent) || 0) + added;
+        }
+
+        function agregarFilasEnTiempoReal(records)
+        {
+            var tbody = document.getElementById('tbody-servidor');
+
+            if (!tbody) {
+                var emptyDiv = document.getElementById('empty-servidor');
+                if (emptyDiv) emptyDiv.remove();
+
+                var tabPane = document.getElementById('tab-servidor');
+                tabPane.innerHTML =
+                    '<div class="card"><div class="card-body p-0"><div class="table-responsive">' +
+                    '<table class="table table-clay mb-0" id="tabla-servidor">' +
+                    '<thead><tr>' +
+                    '<th>Encuestado</th><th>Sector</th><th>Nivel</th>' +
+                    '<th>Ubicación</th><th>Fecha</th><th>Foto</th>' +
+                    '<th class="text-end">Acciones</th>' +
+                    '</tr></thead>' +
+                    '<tbody id="tbody-servidor"></tbody>' +
+                    '</table></div></div></div>';
+
+                tbody = document.getElementById('tbody-servidor');
+            }
+
+            records.forEach(function(enc) {
+                var fechaStr = enc.fechaRegistro
+                    ? enc.fechaRegistro.replace('T', ' ').substring(0, 16)
+                    : '—';
+                var latStr = (enc.latitud && enc.latitud !== 0)
+                    ? '<span style="font-family:var(--font-mono);font-size:.75rem;color:var(--olive-500);">' +
+                    '<i class="bi bi-pin-map me-1"></i>' +
+                    parseFloat(enc.latitud).toFixed(4) + ', ' +
+                    parseFloat(enc.longitud).toFixed(4) + '</span>'
+                    : '<span style="color:var(--ink-muted);font-size:.8rem;">—</span>';
+
+                var tr = document.createElement('tr');
+                tr.style.cssText = 'animation:fadeUp .4s ease;background:rgba(97,114,74,0.05);';
+                tr.innerHTML =
+                    '<td><span class="fw-bold">' + (enc.nombre || '—') + '</span></td>' +
+                    '<td><span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;">' +
+                    '<i class="bi bi-geo-alt" style="color:var(--terra-400);"></i>' +
+                    (enc.sector || '—') + '</span></td>' +
+                    '<td><span class="badge badge-clay">' + (enc.nivelEscolar || '—') + '</span></td>' +
+                    '<td>' + latStr + '</td>' +
+                    '<td><small class="text-muted">' + fechaStr + '</small></td>' +
+                    '<td><span style="color:var(--ink-muted);font-size:.8rem;">—</span></td>' +
+                    '<td class="text-end">' +
+                    '<div class="d-flex justify-content-end gap-1">' +
+                    (enc.id ? '<a href="/encuestas/' + enc.id + '/editar" class="btn btn-sm btn-clay-outline"><i class="bi bi-pencil"></i></a>' : '') +
+                    '</div></td>';
+
+                tbody.insertBefore(tr, tbody.firstChild);
+
+                setTimeout(function() { tr.style.background = ''; }, 3000);
+            });
+        }
+
+
         var syncWorker = new Worker('/js/worker.js');
 
         syncWorker.onmessage = function(e) {
             var statusEl = document.getElementById('worker-status');
             var btnSync  = document.querySelector('[onclick="sincronizarTodo()"]');
-            if (btnSync) { btnSync.disabled = false; btnSync.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo vía WebSocket'; }
-
+            if (btnSync) {
+                btnSync.disabled = false;
+                btnSync.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Sincronizar Todo via WebSocket';
+            }
             if (e.data.status === 'SUCCESS') {
-
                 var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
                 pendientes.forEach(function(p) { p.sincronizado = true; });
                 localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
                 cargarLocales();
                 statusEl.style.display = 'inline';
                 statusEl.style.color   = 'var(--olive-500)';
-                statusEl.innerHTML     = '<i class="bi bi-check-circle me-1"></i>¡Sincronización exitosa!';
-                setTimeout(function() { statusEl.style.display = 'none'; location.reload(); }, 1500);
+                statusEl.innerHTML     = '<i class="bi bi-check-circle me-1"></i>¡Sincronizacion exitosa!';
+                setTimeout(function() {
+                    statusEl.style.display = 'none';
+                }, 2000);
             } else if (e.data.status === 'EMPTY') {
                 statusEl.style.display = 'inline';
                 statusEl.style.color   = 'var(--ink-muted)';
@@ -200,12 +411,15 @@
             } else {
                 statusEl.style.display = 'inline';
                 statusEl.style.color   = '#c0392b';
-                statusEl.innerHTML     = '<i class="bi bi-exclamation-circle me-1"></i>' + (e.data.detalle || 'Error al sincronizar');
+                statusEl.innerHTML     = '<i class="bi bi-exclamation-circle me-1"></i>' +
+                    (e.data.detalle || 'Error al sincronizar');
                 setTimeout(function() { statusEl.style.display = 'none'; }, 5000);
             }
         };
 
         syncWorker.onerror = function(err) { console.error('Worker error:', err); };
+
+
 
         function cargarLocales() {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
@@ -215,8 +429,10 @@
 
             var container = document.getElementById('lista-local');
             if (!pendientes.length) {
-                container.innerHTML = '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;">' +
-                    '<i class="bi bi-check-circle" style="font-size:2rem;color:var(--olive-400);display:block;margin-bottom:.5rem;"></i>' +
+                container.innerHTML =
+                    '<div class="text-center py-4" style="color:var(--ink-muted);font-size:.875rem;">' +
+                    '<i class="bi bi-check-circle" style="font-size:2rem;color:var(--olive-400);' +
+                    'display:block;margin-bottom:.5rem;"></i>' +
                     'No hay registros locales pendientes</div>';
                 return;
             }
@@ -224,27 +440,72 @@
             var html = '<div class="row g-3">';
             pendientes.forEach(function(enc, idx) {
                 var sinc = enc.sincronizado;
-                html += '<div class="col-md-6"><div class="card" style="border-left:3px solid ' +
+                html += '<div class="col-md-6">';
+                html += '<div class="card" style="border-left:3px solid ' +
                     (sinc ? 'var(--olive-400)' : 'var(--terra-400)') + '!important;">';
                 html += '<div class="card-body py-3 px-4">';
                 html += '<div class="d-flex justify-content-between align-items-start">';
                 html += '<div><strong style="font-size:.9rem;">' + enc.nombre + '</strong>';
-                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);"><i class="bi bi-geo-alt me-1"></i>' + enc.sector + '</span></div>';
-                html += '<span class="badge ' + (sinc ? 'badge-olive' : 'badge-terra') + '">' + (sinc ? 'Sincronizado' : 'Pendiente') + '</span>';
-                html += '</div><div class="d-flex gap-2 mt-3">';
-                if (!sinc) html += '<button class="btn btn-clay btn-sm" onclick="enviarLocal(' + idx + ')"><i class="bi bi-cloud-upload me-1"></i>Enviar</button>';
-                html += '<button class="btn btn-outline-danger btn-sm" onclick="eliminarLocal(' + idx + ')"><i class="bi bi-trash"></i></button>';
+                html += '<br><span style="font-size:.78rem;color:var(--ink-muted);">' +
+                    '<i class="bi bi-geo-alt me-1"></i>' + enc.sector + '</span>';
+                html += '<br><span style="font-size:.75rem;color:var(--ink-muted);">' +
+                    '<i class="bi bi-mortarboard me-1"></i>' + enc.nivelEscolar + '</span></div>';
+                html += '<span class="badge ' + (sinc ? 'badge-olive' : 'badge-terra') + '">' +
+                    (sinc ? 'Sincronizado' : 'Pendiente') + '</span>';
+                html += '</div>';
+
+                html += '<div class="d-flex gap-2 mt-3 flex-wrap">';
+                if (!sinc) {
+                    html += '<button class="btn btn-clay-outline btn-sm" onclick="editarLocal(' + idx + ')" ' +
+                        'title="Editar antes de enviar">' +
+                        '<i class="bi bi-pencil me-1"></i>Editar</button>';
+                    html += '<button class="btn btn-clay btn-sm" onclick="enviarLocal(' + idx + ')">' +
+                        '<i class="bi bi-cloud-upload me-1"></i>Enviar</button>';
+                }
+                html += '<button class="btn btn-outline-danger btn-sm" onclick="eliminarLocal(' + idx + ')" ' +
+                    'title="Eliminar registro local">' +
+                    '<i class="bi bi-trash"></i></button>';
                 html += '</div></div></div></div>';
             });
             html += '</div>';
             container.innerHTML = html;
         }
 
+        function editarLocal(idx)
+        {
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+            var enc = pendientes[idx];
+            if (!enc) return;
 
-        async function enviarLocal(idx) {
+            document.getElementById('edit-local-idx').value   = idx;
+            document.getElementById('edit-local-nombre').value = enc.nombre  || '';
+            document.getElementById('edit-local-sector').value = enc.sector  || '';
+            document.getElementById('edit-local-nivel').value  = enc.nivelEscolar || 'BASICO';
+
+            new bootstrap.Modal(document.getElementById('modalEditarLocal')).show();
+        }
+
+        function guardarEdicionLocal()
+        {
+            var idx       = parseInt(document.getElementById('edit-local-idx').value);
+            var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
+
+            if (!pendientes[idx]) return;
+
+            pendientes[idx].nombre       = document.getElementById('edit-local-nombre').value.trim();
+            pendientes[idx].sector       = document.getElementById('edit-local-sector').value.trim();
+            pendientes[idx].nivelEscolar = document.getElementById('edit-local-nivel').value;
+
+            localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarLocal')).hide();
+            cargarLocales();
+        }
+
+        async function enviarLocal(idx)
+        {
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
             var enc        = pendientes[idx];
-            if (!navigator.onLine) { alert('Sin conexión.'); return; }
+            if (!navigator.onLine) { alert('Sin conexion.'); return; }
             try {
                 var r = await fetch('/api/encuestas', {
                     method: 'POST',
@@ -255,13 +516,14 @@
                     pendientes[idx].sincronizado = true;
                     localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
                     cargarLocales();
-                    setTimeout(function() { location.reload(); }, 800);
+
                 } else { alert('Error al sincronizar.'); }
             } catch(e) { alert('Error de conexión.'); }
         }
 
-        function eliminarLocal(idx) {
-            if (!confirm('¿Eliminar este registro local?')) return;
+        function eliminarLocal(idx)
+        {
+            if (!confirm('¿Eliminar este registro local? Esta acción no se puede deshacer.')) return;
             var pendientes = JSON.parse(localStorage.getItem('encuestas_pendientes') || '[]');
             pendientes.splice(idx, 1);
             localStorage.setItem('encuestas_pendientes', JSON.stringify(pendientes));
@@ -280,7 +542,8 @@
             var statusEl = document.getElementById('worker-status');
 
             btnSync.disabled = true;
-            btnSync.innerHTML = '<span class="spinner-clay" style="width:14px;height:14px;border-width:2px;"></span> Conectando ...';
+            btnSync.innerHTML =
+                '<span class="spinner-clay" style="width:14px;height:14px;border-width:2px;"></span> Conectando ...';
             statusEl.style.display = 'inline';
             statusEl.style.color   = 'var(--ink-muted)';
             statusEl.textContent   = 'Enviando al Web Worker...';
@@ -299,7 +562,24 @@
             new bootstrap.Modal(document.getElementById('modalFoto')).show();
         }
 
-        document.addEventListener('DOMContentLoaded', cargarLocales);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Registrar acceso en Web Storage
+            registrarAccesoWebStorage();
+
+            // Cargar lista local
+            cargarLocales();
+
+            // Conectar canal de tiempo real si hay conexión
+            if (navigator.onLine) conectarUpdatesEnVivo();
+        });
+
+        // Re-conectar cuando recupera internet
+        window.addEventListener('online', function() {
+            conectarUpdatesEnVivo();
+        });
+
+        // Recargar locales al cambiar de tab
         document.querySelector('[href="#tab-local"]').addEventListener('click', function() {
             setTimeout(cargarLocales, 100);
         });
